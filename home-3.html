@@ -19,6 +19,165 @@
     <link rel="stylesheet" href="assets/css/ff-2.css">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
+    <!-- AppKit (WalletConnect) + Solana web3.js по CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@reown/appkit@1"></script>
+<script src="https://unpkg.com/@reown/appkit-solana@1"></script>
+
+<script>
+  (function () {
+    // --- НАСТРОЙКИ ПРОЕКТА ---
+    const PROJECT_ID = '6d6910ef3c0da38d8c4a5cfae868e032'; // твой AppKit Project ID
+    const TREASURY = 'fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryowQ'; // куда приходят SOL
+    const MINT = '7uoiVY97CVVW9PZ6oa2yXPKhoBFFPEK4PRGrc6yUXDHy'; // токен ZMR (для инфо)
+    const RATE_ZMR_PER_SOL = 500000; // 1 SOL = 500 000 ZMR
+    const CLUSTER = 'mainnet-beta'; // 'mainnet-beta' или 'devnet'
+
+    // --- DOM ---
+    const inpPay = document.getElementById('zmr-pay');
+    const inpRecv = document.getElementById('zmr-receive');
+    const btnConnect = document.getElementById('zmr-connect');
+    const btnSend = document.getElementById('zmr-send');
+
+    // Пересчёт ZMR по вводу SOL
+    function recalc() {
+      const sol = parseFloat(inpPay.value || '0') || 0;
+      inpRecv.value = Math.floor(sol * RATE_ZMR_PER_SOL);
+    }
+    inpPay.addEventListener('input', recalc);
+    recalc();
+
+    // --- AppKit и провайдер Solana ---
+    let appkit, solProvider, currentAddress = null;
+
+    const metadata = {
+      name: 'MEMEWORLD',
+      description: 'ZMR Presale',
+      url: window.location.origin,
+      icons: ['https://fav.farm/🟡'] // можно заменить на свой логотип
+    };
+
+    async function initAppKit() {
+      // AppKit и адаптер для Solana
+      const AppKit = window.AppKit?.default || window.AppKit;
+      const AppKitSolana = window.AppKitSolana?.default || window.AppKitSolana;
+
+      if (!AppKit || !AppKitSolana) {
+        console.error('AppKit CDN not loaded');
+        return;
+      }
+
+      const solanaAdapter = new AppKitSolana.SolanaAdapter({
+        // режим WalletConnect для мобильных кошельков
+        walletConnect: { projectId: PROJECT_ID }
+      });
+
+      appkit = await AppKit.init({
+        projectId: PROJECT_ID,
+        metadata,
+        wallets: [solanaAdapter],
+        // показываем только Солану
+        chains: [{ id: 'solana', name: 'Solana', rpcUrl: 'https://api.mainnet-beta.solana.com' }]
+      });
+
+      // Подписка на смену аккаунта
+      appkit.subscribe('accountsChanged', (accounts) => {
+        currentAddress = accounts?.[0] || null;
+        updateConnectUI();
+      });
+
+      // Если уже подключен — подтянем адрес
+      const acc = appkit.getAccounts?.();
+      if (acc && acc.length) {
+        currentAddress = acc[0];
+      }
+      updateConnectUI();
+    }
+
+    function short(addr) {
+      return addr ? addr.slice(0, 4) + '...' + addr.slice(-4) : '';
+    }
+
+    function updateConnectUI() {
+      if (currentAddress) {
+        btnConnect.classList.remove('btn-danger');
+        btnConnect.classList.add('btn-success');
+        btnConnect.innerHTML = '<span class="d-inline-block ff-1">Connected: ' + short(currentAddress) + '</span>';
+      } else {
+        btnConnect.classList.add('btn-danger');
+        btnConnect.classList.remove('btn-success');
+        btnConnect.innerHTML = '<span class="d-inline-block ff-1">Connect Wallet</span>';
+      }
+    }
+
+    // Открыть модалку выбора кошелька
+    btnConnect.addEventListener('click', async () => {
+      try {
+        if (!appkit) await initAppKit();
+        await appkit.open(); // покажет список кошельков (Best Wallet/Phantom/OKX и т.д.)
+        // после подключения AppKit вызовет accountsChanged
+      } catch (e) {
+        console.error(e);
+        alert('Ошибка подключения: ' + (e?.message || e));
+      }
+    });
+
+    // Отправка SOL на treasury
+    btnSend.addEventListener('click', async () => {
+      try {
+        if (!appkit) await initAppKit();
+        const amountSol = parseFloat(inpPay.value || '0');
+        if (!amountSol || amountSol <= 0) return alert('Введи сумму в SOL');
+
+        // получаем провайдер Solana из AppKit
+        solProvider = appkit.getProvider?.('solana');
+        if (!solProvider) {
+          // если нет — откроем модалку ещё раз
+          await appkit.open();
+          solProvider = appkit.getProvider?.('solana');
+          if (!solProvider) return;
+        }
+
+        // адрес плательщика
+        const accounts = appkit.getAccounts?.() || [];
+        const fromPubkeyStr = accounts[0];
+        if (!fromPubkeyStr) return alert('Сначала подключи кошелёк');
+
+        const fromPubkey = new solanaWeb3.PublicKey(fromPubkeyStr);
+        const toPubkey = new solanaWeb3.PublicKey(TREASURY);
+        const connection = new solanaWeb3.Connection(
+          CLUSTER === 'devnet'
+            ? solanaWeb3.clusterApiUrl('devnet')
+            : solanaWeb3.clusterApiUrl('mainnet-beta'),
+          'confirmed'
+        );
+
+        const lamports = Math.round(amountSol * solanaWeb3.LAMPORTS_PER_SOL);
+        const ix = solanaWeb3.SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports
+        });
+
+        const { blockhash } = await connection.getLatestBlockhash();
+        const tx = new solanaWeb3.Transaction({ feePayer: fromPubkey, recentBlockhash: blockhash }).add(ix);
+
+        // подпись и отправка через провайдер кошелька
+        const signed = await solProvider.signAndSendTransaction(tx);
+        const sig = signed?.signature || signed; // разные кошельки отдают по‑разному
+
+        alert('Отправлено! Транзакция: ' + sig);
+        // Можно показать ссылку: https://solscan.io/tx/<sig>
+      } catch (e) {
+        console.error(e);
+        alert('Payment error: ' + (e?.message || e));
+      }
+    });
+
+    // автозапуск
+    initAppKit();
+  })();
+</script>
 
 <body class="bg-success-emphasis overflow-x-hidden">
     <!-- Preloader -->
