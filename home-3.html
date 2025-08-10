@@ -995,6 +995,12 @@
     <script src="assets/js/ScrollTrigger.min.js"></script>
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
+
+    <!-- Polyfill Buffer для браузера -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+  window.Buffer = window.Buffer || buffer.Buffer;
+</script>
     <script src="assets/js/app.js"></script>
 
 
