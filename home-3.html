@@ -156,7 +156,7 @@
                                     <div class="progress-bar bg-danger" style="width: 20%"></div>
                                 </div>
                                 <h5 class="text-heading text-center overflow-hidden mt-8">
-                                    <span class="d-inline-block position-relative text-splash text-splash--2x text-splash--dark"> 1 MEMECOIN = $0.003254895 </span>
+                                    <span class="d-inline-block position-relative text-splash text-splash--2x text-splash--dark"> 1 MEMECOIN = $0.000325489 </span>
                                 </h5>
                                 <ul class="list list-row gap-3 flex-wrap justify-content-center">
                                     <li>
@@ -187,13 +187,24 @@
                                 <div class="my-6">
                                     <div class="row g-4 align-items-center">
                                         <div class="col-md-6">
-                                            <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> PAY IN </span>
-                                            <input type="text" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> RECEIVED IN </span>
-                                            <input type="text" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
-                                        </div>
+                                          <!-- PAY IN -->
+<span class="d-block text-heading fs-14 fw-bold ff-2 text-start">PAY IN (SOL)</span>
+<div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
+  <input id="payIn" type="text" class="form-control" value="0" placeholder="Amount in SOL">
+</div>
+
+<!-- RECEIVED IN -->
+<span class="d-block text-heading fs-14 fw-bold ff-2 text-start mt-8">RECEIVED IN (ZMR)</span>
+<div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
+  <input id="receivedIn" type="text" class="form-control" value="0" readonly>
+</div>
+
+<!-- CONNECT -->
+<a id="connectWalletBtn" href="#"
+   class="btn btn-lg btn-secondary rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18 mt-6 w-100">
+  <span class="d-inline-block ff-1">🔗 Connect Wallet</span>
+</a>  
+                        
                                     </div>
                                 </div>
                                 <a id="connectWalletBtn" href="#" class="btn-lg btn-danger align-items-center rounded w-100 justify-content-center">
@@ -966,79 +977,83 @@
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js" crossorigin="anonymous"></script>
 <script>
-  // ==== НАСТРОЙКИ ====
+document.addEventListener('DOMContentLoaded', () => {
+  // --- НАСТРОЙКИ ---
   const TREASURY = new solanaWeb3.PublicKey("7uoiVY97CVVw9PZ6oa2yXPKhoBFfPEK4PRGrc6yUXDHy"); // твой адрес для пресейла
-  const CLUSTER = "mainnet-beta"; // или "devnet" для тестов
+  const CONNECTION = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com", "confirmed");
+  const RATE_ZMR_PER_SOL = 100000; // курс пресейла: 1 SOL = 100000 ZMR (поставь свой)
 
-  // Найдём input "PAY IN" (замени селектор, если у тебя другой)
-  const payInput = document.querySelector('span:contains("PAY IN")') 
-    ? document.querySelector('span:contains("PAY IN")').parentElement.querySelector('input[type="text"]')
-    : document.querySelector('input[name="payIn"]'); // запасной селектор, можно задать name="payIn"
+  const payIn      = document.getElementById('payIn');
+  const receivedIn = document.getElementById('receivedIn');
+  const btn        = document.getElementById('connectWalletBtn');
+
+  // Автоподсчёт сколько ZMR получит юзер
+  const recalc = () => {
+    const n = parseFloat((payIn.value || '0').replace(',', '.'));
+    receivedIn.value = isFinite(n) && n > 0 ? Math.floor(n * RATE_ZMR_PER_SOL) : 0;
+  };
+  payIn.addEventListener('input', recalc);
+  recalc();
 
   async function connectPhantom() {
     if (!window.solana || !window.solana.isPhantom) {
-      alert("Установите Phantom Wallet: https://phantom.app/");
+      window.open("https://phantom.app/", "_blank");
       throw new Error("Phantom not found");
     }
-    const resp = await window.solana.connect();
-    return resp.publicKey; // PublicKey
+    const { publicKey } = await window.solana.connect();
+    return publicKey;
   }
 
-  async function sendSol(amountSol) {
-    const provider = window.solana;
-    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl(CLUSTER), "confirmed");
-
-    const fromPubkey = new solanaWeb3.PublicKey(provider.publicKey);
-    const tx = new solanaWeb3.Transaction();
-
-    // Перевод SOL
-    const lamports = Math.round(amountSol * solanaWeb3.LAMPORTS_PER_SOL);
-    tx.add(
+  async function sendSOL(fromPubkey, amountSOL) {
+    const lamports = Math.round(amountSOL * solanaWeb3.LAMPORTS_PER_SOL);
+    const tx = new solanaWeb3.Transaction().add(
       solanaWeb3.SystemProgram.transfer({
         fromPubkey,
         toPubkey: TREASURY,
         lamports
       })
     );
-
-    // (необязательно) добавить Memo, чтобы видеть, что это покупка ZMR
-    const memoData = "ZMR Presale";
-    tx.add(new solanaWeb3.TransactionInstruction({
-      keys: [],
-      programId: new solanaWeb3.PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
-      data: Buffer.from(memoData, "utf8")
-    }));
-
     tx.feePayer = fromPubkey;
-    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    const { blockhash, lastValidBlockHeight } = await CONNECTION.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
 
-    const signed = await provider.signAndSendTransaction(tx);
-    const sig = signed.signature || signed; // у разных версий по-разному
-    await connection.confirmTransaction(sig, "confirmed");
-
-    return sig;
+    // Поддержка и нового, и старого API Phantom
+    if (window.solana.signAndSendTransaction) {
+      const { signature } = await window.solana.signAndSendTransaction(tx);
+      await CONNECTION.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+      return signature;
+    } else {
+      const signed = await window.solana.signTransaction(tx);
+      const signature = await CONNECTION.sendRawTransaction(signed.serialize());
+      await CONNECTION.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+      return signature;
+    }
   }
 
-  document.getElementById("connectWalletBtn").addEventListener("click", async (e) => {
+  btn.addEventListener('click', async (e) => {
     e.preventDefault();
     try {
-      const pubkey = await connectPhantom();
-
-      // читаем сумму в SOL из поля "PAY IN"
-      let amount = parseFloat((payInput?.value || "0").toString().replace(",", "."));
+      const amount = parseFloat((payIn.value || '0').replace(',', '.'));
       if (!amount || amount <= 0) {
-        alert("Введите сумму в поле PAY IN (в SOL)");
+        alert("Введи сумму в поле PAY IN (в SOL)");
         return;
       }
-
-      const sig = await sendSol(amount);
-      alert("✅ Успех! Транзакция отправлена.\nTx: " + sig);
+      const wallet = await connectPhantom();
+      const sig = await sendSOL(wallet, amount);
+      alert("✅ Отправлено!\nTx: " + sig + "\nЧерез минуту токены ZMR придут от тебя вручную/скриптом.");
+      // Можно показать ссылку на Solscan:
+      // window.open("https://solscan.io/tx/" + sig, "_blank");
     } catch (err) {
       console.error(err);
       alert("❌ Ошибка: " + (err?.message || err));
     }
   });
+});
 </script>
+
+        
+  </body>
 
 </html>
