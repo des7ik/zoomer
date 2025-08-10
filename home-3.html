@@ -1053,6 +1053,26 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+        if (!window.solana || !window.solana.isPhantom) {
+    alert("Установите Phantom Wallet для продолжения.");
+    return;
+}
+        async function connectWallet() {
+    if (window.solana && window.solana.isPhantom) {
+        try {
+            const resp = await window.solana.connect();
+            console.log("Wallet connected:", resp.publicKey.toString());
+        } catch (err) {
+            console.error("Wallet connection failed", err);
+        }
+    } else {
+        alert("Phantom Wallet не найден. Установите его по ссылке https://phantom.app/");
+    }
+}
+        
+        const tokenMintAddress = "7uoiVY97CVVw9PZ6oa2yXPKhoBFfPEK4PRGrc6yUXDHy"; 
+const receiverWallet = "ТВОЙ_СОЛАНА_КОШЕЛЁК";
+
         
   </body>
 
