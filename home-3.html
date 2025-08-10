@@ -1061,6 +1061,19 @@ document.addEventListener('DOMContentLoaded', function () {
   calc();
 });
 </script>
+    <style>
+  /* Отключаем наложение hero поверх всего */
+  .hero-1 {
+    position: relative !important;
+    z-index: 0 !important;
+  }
+
+  .hero-1__title,
+  .hero-1 .gsap-text-animation {
+    position: static !important;
+    z-index: auto !important;
+  }
+</style>
 </body>
 
 </html>
