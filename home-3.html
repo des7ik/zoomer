@@ -107,7 +107,7 @@
                     <div class="row g-4">
                         <div class="col-lg-6">
                             <span class="d-inline-block mb-4 text-secondary fs-24 text-stroke gsap-text-animation" data-delay="1" data-split-type="words"> ONE COIN TO RULE THEME ALL </span>
-                            <h1 class="hero-1__title mb-10 text-light text-stroke-md text-shadow-md gsap-text-animation" data-delay="1.25" data-split-type="words"> THE NEXT FROG </h1>
+                            <h1 class="hero-1__title mb-10 text-light text-stroke-md text-shadow-md gsap-text-animation" data-delay="1.25" data-split-type="words"> THE NEXT ZooMer </h1>
                             <div class="d-flex align-items-center flex-wrap gap-4">
                                 <a href="sign-in.html" class="btn btn-lg btn-secondary text-heading align-items-center rounded gsap-fade-in" data-delay="1.5" data-y="50">
                                     <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
@@ -125,7 +125,7 @@
                                     <span class="d-inline-block position-relative text-splash text-splash--2x text-splash--dark"> PRESALE ENDING IN </span>
                                 </h5>
                                 <div class="bg-light border border-dark shadow-sharp rounded-4 p-4">
-                                    <div class="countdown d-flex align-items-center justify-content-center gap-3 gap-sm-6 gap-lg-4 gap-xl-6 flex-wrap" data-date="2026-08-30">
+                                    <div class="countdown d-flex align-items-center justify-content-center gap-3 gap-sm-6 gap-lg-4 gap-xl-6 flex-wrap" data-date="2025-08-30">
                                         <div class="d-flex flex-column align-items-center">
                                             <span class="days counter-1__text text-heading lh-1/2"></span>
                                             <span class="d-block"> DAYS </span>
@@ -147,13 +147,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <span class="d-block text-center fs-18 text-heading my-6"> USDT RAISED : 111,909.84 / $1,307,601 </span>
+                                <span class="d-block text-center fs-18 text-heading my-6"> USDT RAISED : 2,111,909 / $10,000,000 </span>
                                 <div class="d-flex align-items-center justify-content-between">
                                     <span class="d-block h6 m-0 text-light text-stroke text-shadow"> Token Sale </span>
-                                    <span class="d-block h6 m-0 text-light text-stroke text-shadow"> 80% </span>
+                                    <span class="d-block h6 m-0 text-light text-stroke text-shadow"> 20% </span>
                                 </div>
                                 <div class="progress mt-3">
-                                    <div class="progress-bar bg-danger" style="width: 80%"></div>
+                                    <div class="progress-bar bg-danger" style="width: 20%"></div>
                                 </div>
                                 <h5 class="text-heading text-center overflow-hidden mt-8">
                                     <span class="d-inline-block position-relative text-splash text-splash--2x text-splash--dark"> 1 MEMECOIN = $0.003254895 </span>
@@ -196,7 +196,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <a href="#" class="btn btn-lg btn-danger align-items-center rounded w-100 justify-content-center text-light">
+                                <a id="connectWalletBtn" href="#" class="btn-lg btn-danger align-items-center rounded w-100 justify-content-center">
                                     <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
                                     <span class="d-inline-block ff-1"> Connect Wallet </span>
                                 </a>
@@ -966,6 +966,25 @@
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></script>
-</body>
+    ...
+<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+<script>
+document.getElementById("connectWalletBtn").addEventListener("click", async function(event) {
+    event.preventDefault();
 
+    if ("solana" in window) {
+        try {
+            const resp = await window.solana.connect();
+            const walletAddress = resp.publicKey.toString();
+            alert("✅ Кошелёк подключен: " + walletAddress);
+        } catch (err) {
+            console.error(err);
+            alert("❌ Подключение отменено");
+        }
+    } else {
+        alert("Установите Phantom Wallet: https://phantom.app/");
+    }
+});
+</script>
+</body>
 </html>
