@@ -206,20 +206,18 @@
   <a id="dexBtn" href="https://www.dextools.io/app" target="_blank"
      class="btn btn-lg btn-secondary align-items-center rounded w-100 justify-content-center text-heading">
     <span class="d-inline-block ff-1">DexTools</span>
-
-</body>
-      <script>
+<script>
   // ---- настройки ----
-  const TREASURY = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой кошелёк (получатель SOL)
+  const TREASURY = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // получатель SOL
   const ZMR_PRICE_USD = 0.0003;  // 1 ZMR = $0.0003
-  const SOL_PRICE_USD = 150;     // временно фикс: 1 SOL = $150
+  const SOL_PRICE_USD = 150;     // временно фикс
   const PHANTOM_NET   = "mainnet-beta"; // devnet | mainnet-beta
 
   // ---- элементы ----
-  const payIn        = document.getElementById('payIn');
-  const receivedIn   = document.getElementById('receivedIn');
-  const payBtn       = document.getElementById('payPhantom');
-  const txStatus     = document.getElementById('txStatus');
+  const payIn      = document.getElementById('payIn');
+  const receivedIn = document.getElementById('receivedIn');
+  const payBtn     = document.getElementById('payPhantom');
+  const txStatus   = document.getElementById('txStatus');
 
   function recalc() {
     const sol = parseFloat(payIn.value || "0");
@@ -230,62 +228,59 @@
   payIn.addEventListener('input', recalc);
   recalc();
 
-  // Универсальная ссылка Phantom: откроет перевод на нужную сумму
   function openPhantomTransfer(solAmount) {
-    // безопасность
     if (!solAmount || solAmount <= 0) {
       txStatus.textContent = "Введите сумму в SOL.";
       return;
     }
-    // уникальная метка (можно хранить как чек)
+
     const reference = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
 
-    const base = "https://phantom.app/ul/transfer";
-    const url = new URL(base);
-    url.searchParams.set("to", TREASURY);
-    url.searchParams.set("amount", String(solAmount)); // в SOL
-    url.searchParams.set("network", PHANTOM_NET);      // mainnet-beta/devnet
-    url.searchParams.set("reference", reference);
-    url.searchParams.set("redirect_link", window.location.href);
+    // 1) Правильный universal‑link для Phantom
+    const phantom = new URL("https://phantom.app/ul/transfer");
+    phantom.searchParams.set("recipient", TREASURY);
+    phantom.searchParams.set("amount", String(solAmount));     // в SOL (десятичное)
+    phantom.searchParams.set("network", PHANTOM_NET);          // mainnet-beta / devnet
+    phantom.searchParams.set("reference", reference);
+    phantom.searchParams.set("label", "ZMR Presale");
+    phantom.searchParams.set("message", "ZMR presale payment");
+    phantom.searchParams.set("redirect_link", window.location.href);
 
-    // Пытаемся открыть как universal link (iOS/Android), если не выйдет — просто location.href
-    window.location.href = url.toString();
+    // 2) Запасной вариант: стандартная solana:-ссылка
+    const solana = new URL("solana:transfer");
+    solana.searchParams.set("recipient", TREASURY);
+    solana.searchParams.set("amount", String(solAmount));
+    solana.searchParams.set("reference", reference);
+    solana.searchParams.set("label", "ZMR Presale");
+    solana.searchParams.set("message", "ZMR presale payment");
+
+    // Сначала пробуем universal‑link Phantom:
+    let opened = false;
+    const t = setTimeout(() => {
+      if (!opened) {
+        // fallback на solana: (часто срабатывает на iOS/Android)
+        window.location.href = solana.toString();
+      }
+    }, 600);
+
+    // Попытка открыть Phantom
+    window.location.href = phantom.toString();
+
+    // если страница уходит в background — считаем, что открылось
+    const visHandler = () => {
+      if (document.visibilityState === "hidden") {
+        opened = true;
+        clearTimeout(t);
+        document.removeEventListener("visibilitychange", visHandler);
+      }
+    };
+    document.addEventListener("visibilitychange", visHandler);
   }
 
   payBtn.addEventListener('click', (e) => {
     e.preventDefault();
     const amount = parseFloat(payIn.value || "0");
     openPhantomTransfer(amount);
-  });
-</script>
-      </body>
-  </a>
-</div>
-
-<div id="txStatus" class="mt-3 small text-heading"></div>
-
-<!-- Опционально место для статуса -->
-<div id="txStatus" class="mt-3 small text-heading"></div>
-
-<script>
-  const walletAddress = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой адрес
-  const zmrPriceUSD = 0.0003; // цена за 1 ZMR в $
-  const solPriceUSD = 150; // курс SOL в $
-  
-  const payInInput = document.getElementById("payIn");
-  const receivedInInput = document.getElementById("receivedIn");
-  const buyBtn = document.getElementById("buyBtn");
-
-  // Пересчет ZMR при изменении суммы SOL
-  payInInput.addEventListener("input", () => {
-    const solAmount = parseFloat(payInInput.value) || 0;
-    const usdValue = solAmount * solPriceUSD;
-    const zmrAmount = usdValue / zmrPriceUSD;
-    receivedInInput.value = zmrAmount.toLocaleString(undefined, {maximumFractionDigits: 0});
-    
-    // Создание ссылки на оплату в Phantom
-    const solanaPayURL = `https://phantom.app/ul/browse/transfer?recipient=${walletAddress}&amount=${solAmount}&spl-token=&reference=&label=ZMR%20Presale&message=Buy%20ZMR&memo=Presale`;
-    buyBtn.href = solanaPayURL;
   });
 </script>
                             </div>
