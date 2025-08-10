@@ -966,6 +966,101 @@
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></script>
+
+    <section id="zmr-presale" class="section-space-y">
+  <div class="container">
+    <div class="p-6 p-md-8 rounded-4 border border-2x border-dark bg-warning">
+      <h3 class="mb-4">ZMR Presale</h3>
+
+      <div class="row g-3 align-items-end">
+        <div class="col-sm-6">
+          <label class="form-label">Pay in (SOL)</label>
+          <input id="solIn" type="number" step="0.01" min="0" value="0.1" class="form-control">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label">You'll receive (ZMR)</label>
+          <input id="zmrOut" type="text" class="form-control" readonly>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex gap-3 flex-wrap">
+        <a id="openWallet" class="btn btn-secondary" target="_blank" rel="noopener">Open in Wallet</a>
+        <button id="copyAddr" class="btn btn-light">Copy Treasury Address</button>
+      </div>
+
+      <div class="mt-3 small text-dark">
+        <div><b>Mint:</b> 7uoiVY97CVVw9PZ6oa2yXPKhoBFFPEK4PRGrc6yUXDHy</div>
+        <div><b>Treasury:</b> fvYR48xCq2wLj cPGFrwmsNFzpQxJXB4W3dTTjPryoWq</div>
+        <div class="mt-2">Rate: <b>1 ZMR = $0.0003</b> (пример: если SOL ≈ $150, то 1 SOL ≈ 500,000 ZMR)</div>
+      </div>
+
+      <div class="mt-4">
+        <div id="qr"></div>
+        <div class="small text-muted mt-2">Отсканируйте QR, чтобы открыть платёж в кошельке.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QRCode.js с CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ====== НАСТРОЙКИ ======
+  const MINT = '7uoiVY97CVVw9PZ6oa2yXPKhoBFFPEK4PRGrc6yUXDHy';
+  const TREASURY = 'fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq';
+  const PRICE_USD = 0.0003;   // 1 ZMR = $0.0003
+  const SOL_USD   = 150;      // временно фиксируем курс SOL для расчёта (можешь менять)
+  // =======================
+
+  const solIn   = document.getElementById('solIn');
+  const zmrOut  = document.getElementById('zmrOut');
+  const openBtn = document.getElementById('openWallet');
+  const copyBtn = document.getElementById('copyAddr');
+
+  function calc() {
+    const sol = parseFloat(solIn.value || 0);
+    const usd = sol * SOL_USD;
+    const zmr = usd / PRICE_USD;
+    zmrOut.value = Number.isFinite(zmr) ? Math.floor(zmr).toLocaleString() : '0';
+    updateLinks(sol);
+  }
+
+  function solanaPayLink(solAmount) {
+    // Solana Pay URI (работает во многих кошельках, включая Phantom)
+    // amount должен быть в SOL, мемо — что это пресейл ZMR
+    const params = new URLSearchParams({
+      amount: String(solAmount || 0),
+      memo: `ZMR Presale | mint=${MINT}`
+    });
+    return `solana:${TREASURY}?${params.toString()}`;
+  }
+
+  function updateLinks(solAmount) {
+    const url = solanaPayLink(solAmount);
+    openBtn.href = url;
+    // QR
+    const qrBox = document.getElementById('qr');
+    if (window.QRCode) {
+      qrBox.innerHTML = '';
+      new QRCode(qrBox, { text: url, width: 180, height: 180 });
+    }
+  }
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(TREASURY);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(()=>copyBtn.textContent='Copy Treasury Address', 1200);
+    } catch (e) {
+      alert('Скопируйте вручную: ' + TREASURY);
+    }
+  });
+
+  solIn.addEventListener('input', calc);
+  calc();
+});
+</script>
 </body>
 
 </html>
