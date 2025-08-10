@@ -40,7 +40,7 @@ async function buyZMR() {
   const { publicKey } = await provider.connect();
 
   const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"), "confirmed");
-
+<input id="payInput" type="text" ...>
   // сколько SOL отправляем
   const solAmount = parseFloat(payInput.value || "0");
   if (!solAmount || solAmount <= 0) {
@@ -95,6 +95,71 @@ if (connectBtn) {
       }
     } catch (e) {
       console.error(e);
+      <button id="buyBtn" class="btn btn-secondary mt-3">Buy ZMR</button>
+      // wallet.js
+import { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+
+let provider;
+let publicKey;
+
+async function ensurePhantom() {
+  provider = window?.phantom?.solana || window?.solana;
+  if (!provider?.isPhantom) {
+    alert('Открой сайт в браузере Phantom или поставь расширение.');
+    throw new Error('Phantom not found');
+  }
+  return provider;
+}
+
+document.getElementById('connectBtn')?.addEventListener('click', async () => {
+  await ensurePhantom();
+  const resp = await provider.connect();
+  publicKey = resp.publicKey.toString();
+  // обнови UI…
+});
+
+document.getElementById('buyBtn')?.addEventListener('click', async () => {
+  try {
+    await ensurePhantom();
+    if (!publicKey) publicKey = (await provider.connect()).publicKey.toString();
+
+    const amountSol = Number(document.getElementById('payInput').value || '0');
+    if (!amountSol || amountSol <= 0) return alert('Введите сумму в SOL');
+
+    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed'); // или ENV
+    const from = new PublicKey(publicKey);
+    const to = new PublicKey('PASTE_TREASURY_ADDRESS_HERE'); // тот же, что в env
+
+    // 1) Собираем и отправляем платеж SOL → treasury
+    const tx = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: from,
+        toPubkey: to,
+        lamports: Math.round(amountSol * LAMPORTS_PER_SOL),
+      })
+    );
+    tx.feePayer = from;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    const signed = await provider.signAndSendTransaction(tx);
+    const txSig = signed.signature;
+
+    // 2) Зовём сервер: минтит ZMR покупателю
+    const res = await fetch('/.netlify/functions/presale', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ buyer: publicKey, amountSol, txSig })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert('Готово! Токены отправлены. Tx: ' + data.mintSig);
+    } else {
+      alert('Ошибка: ' + JSON.stringify(data));
+    }
+  } catch (e) {
+    alert('Ошибка покупки: ' + e.message);
+  }
+});
     }
   });
 }
