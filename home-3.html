@@ -652,6 +652,36 @@
                 <img src="assets/img/shape/hero-element-6.png" alt="image" class="img-fluid tokenomics-section-1__img tokenomics-section-1__img--4 gsap-fade-in" data-scroll-trigger="true" data-delay="0.5">
             </div>
             <!-- Tokenomics End -->
+
+
+            <section id="presale" class="section-space-y bg-warning rounded-5 border border-2x border-dark p-4 p-md-6">
+  <h3 class="mb-3 text-dark">ZMR Presale</h3>
+
+  <div class="d-flex gap-3 flex-wrap align-items-end mb-3">
+    <div>
+      <label class="d-block text-dark fw-bold mb-1">Pay in (SOL)</label>
+      <input id="presale-sol" type="number" min="0" step="0.001" class="form-control" placeholder="0.1">
+    </div>
+    <div>
+      <label class="d-block text-dark fw-bold mb-1">You’ll receive (ZMR)</label>
+      <input id="presale-zmr" type="text" class="form-control" disabled>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <button id="btn-connect" class="btn btn-dark">Connect Wallet</button>
+      <button id="btn-pay" class="btn btn-secondary" disabled>Send SOL</button>
+    </div>
+  </div>
+
+  <p class="mb-1 text-dark">Mint: <code>7uoiVY97CVVw9PZ6oa2yXPKhoBFfPEK4PRGrc6yUXDHy</code></p>
+  <p class="mb-1 text-dark">Treasury: <code id="treasury-text"></code></p>
+  <p class="mb-1 text-dark">Rate: <span id="rate-text"></span></p>
+  <div id="presale-status" class="mt-2 small text-dark"></div>
+
+  <div class="mt-3">
+    <button id="btn-copy" class="btn btn-light btn-sm">Copy Treasury Address</button>
+    <span id="copy-ok" class="ms-2 small text-success" style="display:none;">Copied!</span>
+  </div>
+</section>
             <!-- Ticker -->
             <div class="ticker-1 py-4 bg-danger border-top border-bottom border-2x border-dark">
                 <div class="container-fluid p-0">
