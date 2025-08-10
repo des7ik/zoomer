@@ -1,22 +1,72 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
-
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Memeworld: A feature-rich HTML template for memecoin, crypto, and ICO projects. Modern design, responsive layout, and ready for Crypto Project">
-    <meta name="keywords" content="memecoin, crypto, ico, html template, themeforest, meme coin, cryptocurrency, blockchain, token, landing page, web3, nft, decentralized, finance, investment">
-    <meta name="author" content="bplugins">
-    <title>Memeworld - Memecoin ICO &amp; Crypto HTML Template</title>
-    <link rel="icon" href="assets/img/favicon.png" type="image/png">
-    <link rel="stylesheet" href="assets/css/bootstrap.css">
-    <link rel="stylesheet" href="assets/css/bootstrap-icons.css">
-    <link rel="stylesheet" href="assets/css/simplebar.css">
-    <link rel="stylesheet" href="assets/css/swiper-bundle.css">
-    <link rel="stylesheet" href="assets/css/ff-1.css">
-    <link rel="stylesheet" href="assets/css/ff-2.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MemeWorld - Wallet Connect</title>
+  
+  <!-- Bootstrap (для стилей кнопок) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Iconify -->
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+  <!-- AppKit -->
+  <script type="module">
+    import { createAppKit } from "https://esm.sh/@reown/appkit@1.1.1";
+    import { solana } from "https://esm.sh/@reown/appkit/networks";
+
+    const projectId = "6d6910ef3c0da38d8c4a5cfae868e032";
+
+    const metadata = {
+      name: "MemeWorld",
+      description: "Meme token presale",
+      url: "https://z00mer.netlify.app",
+      icons: ["https://z00mer.netlify.app/logo.png"]
+    };
+
+    const modal = createAppKit({
+      projectId,
+      metadata,
+      networks: [solana],
+      features: {
+        analytics: true
+      }
+    });
+
+    window.connectWallet = async () => {
+      try {
+        await modal.open();
+      } catch (err) {
+        console.error("Ошибка подключения кошелька:", err);
+      }
+    };
+  </script>
 </head>
+<body class="p-4 bg-warning">
+
+  <!-- Поля для ввода -->
+  <div class="my-4">
+    <div class="row g-4 align-items-center">
+      <div class="col-md-6">
+        <span class="d-block text-heading fs-14 fw-bold text-start">PAY IN</span>
+        <input type="number" id="pay-in" class="form-control form-control-lg border border-dark rounded-3 shadow" value="0">
+      </div>
+      <div class="col-md-6">
+        <span class="d-block text-heading fs-14 fw-bold text-start">RECEIVED IN</span>
+        <input type="number" id="received-in" class="form-control form-control-lg border border-dark rounded-3 shadow" value="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- Кнопка подключения -->
+  <button onclick="connectWallet()" class="btn btn-lg btn-danger w-100 d-flex align-items-center justify-content-center">
+    <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
+    <span class="ms-2">Connect Wallet</span>
+  </button>
+
+</body>
+</html>
 
 <body class="bg-success-emphasis overflow-x-hidden">
     <!-- Preloader -->
