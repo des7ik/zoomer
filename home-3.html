@@ -965,26 +965,81 @@
     <script src="assets/js/ScrollTrigger.min.js"></script>
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
-    <script src="assets/js/app.js"></script>
-    ...
-<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="assets/js/app.js"></<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 <script>
-document.getElementById("connectWalletBtn").addEventListener("click", async function(event) {
-    event.preventDefault();
+  // ==== НАСТРОЙКИ ====
+  const TREASURY = new solanaWeb3.PublicKey("7uoiVY97CVVw9PZ6oa2yXPKhoBFfPEK4PRGrc6yUXDHy"); // твой адрес для пресейла
+  const CLUSTER = "mainnet-beta"; // или "devnet" для тестов
 
-    if ("solana" in window) {
-        try {
-            const resp = await window.solana.connect();
-            const walletAddress = resp.publicKey.toString();
-            alert("✅ Кошелёк подключен: " + walletAddress);
-        } catch (err) {
-            console.error(err);
-            alert("❌ Подключение отменено");
-        }
-    } else {
-        alert("Установите Phantom Wallet: https://phantom.app/");
+  // Найдём input "PAY IN" (замени селектор, если у тебя другой)
+  const payInput = document.querySelector('span:contains("PAY IN")') 
+    ? document.querySelector('span:contains("PAY IN")').parentElement.querySelector('input[type="text"]')
+    : document.querySelector('input[name="payIn"]'); // запасной селектор, можно задать name="payIn"
+
+  async function connectPhantom() {
+    if (!window.solana || !window.solana.isPhantom) {
+      alert("Установите Phantom Wallet: https://phantom.app/");
+      throw new Error("Phantom not found");
     }
-});
+    const resp = await window.solana.connect();
+    return resp.publicKey; // PublicKey
+  }
+
+  async function sendSol(amountSol) {
+    const provider = window.solana;
+    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl(CLUSTER), "confirmed");
+
+    const fromPubkey = new solanaWeb3.PublicKey(provider.publicKey);
+    const tx = new solanaWeb3.Transaction();
+
+    // Перевод SOL
+    const lamports = Math.round(amountSol * solanaWeb3.LAMPORTS_PER_SOL);
+    tx.add(
+      solanaWeb3.SystemProgram.transfer({
+        fromPubkey,
+        toPubkey: TREASURY,
+        lamports
+      })
+    );
+
+    // (необязательно) добавить Memo, чтобы видеть, что это покупка ZMR
+    const memoData = "ZMR Presale";
+    tx.add(new solanaWeb3.TransactionInstruction({
+      keys: [],
+      programId: new solanaWeb3.PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
+      data: Buffer.from(memoData, "utf8")
+    }));
+
+    tx.feePayer = fromPubkey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    const signed = await provider.signAndSendTransaction(tx);
+    const sig = signed.signature || signed; // у разных версий по-разному
+    await connection.confirmTransaction(sig, "confirmed");
+
+    return sig;
+  }
+
+  document.getElementById("connectWalletBtn").addEventListener("click", async (e) => {
+    e.preventDefault();
+    try {
+      const pubkey = await connectPhantom();
+
+      // читаем сумму в SOL из поля "PAY IN"
+      let amount = parseFloat((payInput?.value || "0").toString().replace(",", "."));
+      if (!amount || amount <= 0) {
+        alert("Введите сумму в поле PAY IN (в SOL)");
+        return;
+      }
+
+      const sig = await sendSol(amount);
+      alert("✅ Успех! Транзакция отправлена.\nTx: " + sig);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Ошибка: " + (err?.message || err));
+    }
+  });
 </script>
+
 </body>
 </html>
