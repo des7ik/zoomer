@@ -184,6 +184,130 @@
                                         </a>
                                     </li>
                                 </ul>
+
+
+
+                               <div class="my-6" id="zmr-presale">
+  <div class="row g-4 align-items-center">
+    <div class="col-md-6">
+      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start">PAY IN (SOL)</span>
+      <input id="zmr-pay" type="number" min="0" step="0.0001"
+             class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
+    </div>
+    <div class="col-md-6">
+      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start">YOU'LL RECEIVE (ZMR)</span>
+      <input id="zmr-receive" type="text" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0" readonly>
+    </div>
+  </div>
+
+  <div class="d-flex gap-3 mt-4">
+    <button id="zmr-connect" type="button"
+            class="btn btn-lg btn-danger align-items-center rounded w-100 justify-content-center text-light">
+      <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
+      <span class="d-inline-block ff-1">Connect Wallet</span>
+    </button>
+
+    <button id="zmr-send" type="button"
+            class="btn btn-lg btn-warning align-items-center rounded w-100 justify-content-center text-dark" disabled>
+      <span class="d-inline-block ff-1">Send SOL</span>
+    </button>
+  </div>
+
+  <div class="mt-2 small text-muted">
+    Rate: <b>1 SOL = 500,000 ZMR</b> (эквивалентно ~$0.0003 за 1 ZMR при SOL ≈ $150)
+  </div>
+</div> 
+
+                                <!-- AppKit (Reown) -->
+<script src="https://unpkg.com/@reown/appkit@latest/dist/appkit.umd.js"></script>
+
+<script>
+  // ==== ТВОИ НАСТРОЙКИ ====
+  const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032";   // из dashboard.reown.com
+  const TREASURY  = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // куда приходит SOL
+  const RATE_ZMR_PER_SOL = 500000; // 1 SOL = 500 000 ZMR (≈ $0.0003 за ZMR при сол ~ $150)
+
+  // ==== ЭЛЕМЕНТЫ ====
+  const $pay     = document.getElementById('zmr-pay');
+  const $receive = document.getElementById('zmr-receive');
+  const $btnConn = document.getElementById('zmr-connect');
+  const $btnSend = document.getElementById('zmr-send');
+
+  // Обновление расчёта ZMR при вводе SOL
+  function updateReceive() {
+    const sol = parseFloat($pay.value || "0");
+    const zmr = isNaN(sol) ? 0 : Math.floor(sol * RATE_ZMR_PER_SOL);
+    $receive.value = zmr.toLocaleString('en-US');
+  }
+  $pay.addEventListener('input', updateReceive);
+  updateReceive();
+
+  // ==== AppKit (инициализация модалки кошельков) ====
+  const appKit = new window.AppKit.AppKitModal({
+    projectId: PROJECT_ID,
+    chains: [window.AppKit.chains.solanaMainnet],   // Solana mainnet
+    themeMode: 'light',
+    themeVariables: {
+      '--w3m-accent-color': '#FCD34D',
+      '--w3m-background-color': '#111827'
+    }
+  });
+
+  let connectedAccount = null;
+
+  // Подписка на изменения сессии
+  appKit.subscribe('session_update', (session) => {
+    try {
+      const accs = session?.namespaces?.solana?.accounts || [];
+      connectedAccount = accs.length ? accs[0].split(':').pop() : null; // формат: solana:mainnet:PublicKey
+      onConnectStateChange();
+    } catch (_) {}
+  });
+
+  // При клике — открыть модал кошельков
+  $btnConn.addEventListener('click', () => appKit.openModal());
+
+  function onConnectStateChange() {
+    if (connectedAccount) {
+      $btnConn.classList.remove('btn-danger');
+      $btnConn.classList.add('btn-success');
+      $btnConn.innerHTML = 'Connected: ' + connectedAccount.slice(0, 4) + '...' + connectedAccount.slice(-4);
+      $btnSend.disabled = false;
+    } else {
+      $btnConn.classList.add('btn-danger');
+      $btnConn.classList.remove('btn-success');
+      $btnConn.innerHTML = '<span class="d-inline-block ff-1">Connect Wallet</span>';
+      $btnSend.disabled = true;
+    }
+  }
+
+  // ==== Отправка SOL через deeplink (работает в Phantom/BestWallet на мобиле) ====
+  $btnSend.addEventListener('click', () => {
+    const amountSol = parseFloat($pay.value || "0");
+    if (!connectedAccount) {
+      appKit.openModal();
+      return;
+    }
+    if (!amountSol || amountSol <= 0) {
+      alert('Введите сумму в поле "PAY IN (SOL)".');
+      return;
+    }
+
+    // Формируем solana: URI (Phantom/BestWallet поймут и подставят реквизиты)
+    // amount указываем в SOL (десятичное), memo — произвольный текст
+    const params = new URLSearchParams({
+      amount: amountSol.toString(),
+      reference: connectedAccount,          // можно оставить как метку отправителя
+      label: 'ZMR Presale',
+      message: 'Buy ZMR presale',
+      memo: 'zmr-presale'
+    });
+    const deepLink = `solana:${TREASURY}?${params.toString()}`;
+
+    // Открываем кошелек (на iOS/Android Phantom перехватит ссылку)
+    window.location.href = deepLink;
+  });
+</script>
                                 <div class="my-6">
                                     <div class="row g-4 align-items-center">
                                         <div class="col-md-6">
