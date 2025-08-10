@@ -17,6 +17,112 @@
     <link rel="stylesheet" href="assets/css/ff-2.css">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
+    from pathlib import Path
+import re
+
+src_path = Path("/mnt/data/home-3.html")
+html = src_path.read_text(encoding="utf-8")
+
+# Replace rate text
+html = html.replace("1 MEMECOIN = $0.003254895", "1 ZMR = $0.0003")
+
+# Replace inputs block
+pattern_inputs = re.compile(r'<div class="my-6">\s*<div class="row g-4 align-items-center">.*?</div>\s*</div>', re.S)
+replacement_inputs = """
+<div class="my-6">
+  <div class="row g-4 align-items-center">
+    <div class="col-md-6">
+      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> PAY IN (SOL) </span>
+      <input id="zmr-pay" type="number" min="0" step="0.0000001" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
+    </div>
+    <div class="col-md-6">
+      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> RECEIVED IN (ZMR) </span>
+      <input id="zmr-recv" type="text" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0" readonly>
+    </div>
+  </div>
+</div>
+"""
+html, n_inputs = pattern_inputs.subn(replacement_inputs, html, count=1)
+
+# Replace connect anchor with buttons
+pattern_button = re.compile(r'<a href="#" class="btn btn-lg btn-danger[^>]*>.*?Connect Wallet.*?</a>', re.S)
+replacement_buttons = """
+<div class="d-flex gap-3 mt-2">
+  <button id="zmr-connect" type="button" class="btn btn-lg btn-danger align-items-center rounded w-100 justify-content-center text-light">
+    <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
+    <span class="d-inline-block ff-1">Connect Wallet</span>
+  </button>
+  <button id="zmr-send" type="button" class="btn btn-lg btn-warning align-items-center rounded w-100 justify-content-center text-dark">
+    <span class="d-inline-block ff-1">Send SOL</span>
+  </button>
+</div>
+<div class="mt-3 small text-center text-light">
+  <div>Mint (ZMR): <code>7uoiVY97CVVw9PZ6oa2yXPKhoBFFPEK4PRGrc6yUXDHy</code></div>
+  <div>Treasury (SOL): <code>fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq</code></div>
+  <div class="mt-1">Rate: <b>1 SOL ≈ 500 000 ZMR</b></div>
+</div>
+"""
+html, n_button = pattern_button.subn(replacement_buttons, html, count=1)
+
+# Append ESM script
+esm_script = """
+<script type="module">
+  import { createAppKit } from 'https://unpkg.com/@reown/appkit@1?module';
+  import { solana, SolanaAdapter } from 'https://unpkg.com/@reown/appkit-solana@1?module';
+
+  const PROJECT_ID = '6d6910ef3c0da38d8c4a5cfae868e032';
+
+  const metadata = {
+    name: 'MEMEWORLD',
+    description: 'ZMR Presale',
+    url: location.origin,
+    icons: ['https://fav.farm/🟡']
+  };
+
+  const appkit = createAppKit({
+    projectId: PROJECT_ID,
+    metadata,
+    chains: [solana],
+    adapters: [new SolanaAdapter()],
+  });
+
+  const $pay  = document.getElementById('zmr-pay');
+  const $recv = document.getElementById('zmr-recv');
+  const $btnConnect = document.getElementById('zmr-connect');
+  const $btnSend    = document.getElementById('zmr-send');
+
+  const RATE_ZMR_PER_SOL = 500_000;
+
+  const recalc = () => {
+    const sol = parseFloat($pay?.value || '0') || 0;
+    const zmr = Math.max(sol, 0) * RATE_ZMR_PER_SOL;
+    if ($recv) $recv.value = Math.floor(zmr).toLocaleString('en-US');
+  };
+  if ($pay) {
+    $pay.addEventListener('input', recalc);
+    recalc();
+  }
+
+  $btnConnect?.addEventListener('click', async () => {
+    try {
+      await appkit.open();
+    } catch (e) {
+      alert('Ошибка подключения: ' + (e?.message || e));
+      console.error(e);
+    }
+  });
+
+  $btnSend?.addEventListener('click', () => {
+    alert('Отправку SOL включу после подтверждения стабильной работы Connect Wallet 🙂');
+  });
+</script>
+"""
+html = html.replace("</body>", f"{esm_script}\n</body>")
+
+out_path = Path("/mnt/data/home-3.zmr.appkit.html")
+out_path.write_text(html, encoding="utf-8")
+
+print("Done. Replaced inputs:", n_inputs, "Replaced connect:", n_button, "Output:", out_path)
 
 <body class="bg-success-emphasis overflow-x-hidden">
     <!-- Preloader -->
