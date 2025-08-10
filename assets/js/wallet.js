@@ -73,6 +73,15 @@ async function buyZMR() {
   // ИЛИ 3) Готовый сервис (Helio/TipLink/и т.п.) с автодоставкой токена.
 }
 
+async function ensurePhantom() {
+  const provider = window?.phantom?.solana || window?.solana;
+  if (!provider || !provider.isPhantom) {
+    alert("Phantom Wallet не найден. Открой сайт в браузере Phantom (в приложении) или установи расширение в десктоп-браузер.");
+    throw new Error("Phantom not found");
+  }
+  return provider;
+}
+
 // привязываем к кнопке
 if (connectBtn) {
   connectBtn.addEventListener("click", async (e) => {
