@@ -1099,6 +1099,63 @@ $btnCopy.addEventListener("click", async () => {
   } catch {}
 });
 </script>
+
+   <button id="zmr-connect" class="btn btn-dark">Connect Wallet</button>
+<button id="zmr-open-phantom" class="btn btn-link d-none">Open in Phantom</button>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.4/lib/index.iife.min.js"></script>
+<script>
+(async function () {
+  const connectBtn = document.getElementById('zmr-connect');
+  const openPhantomBtn = document.getElementById('zmr-open-phantom');
+
+  // Твой домен (куда открывать страницу внутри Phantom)
+  const currentUrl = encodeURIComponent(window.location.href);
+  const phantomDeepLink = `https://phantom.app/ul/browse?url=${currentUrl}`;
+
+  // Функция показа кнопки "Open in Phantom"
+  function showOpenInPhantom() {
+    if (openPhantomBtn) {
+      openPhantomBtn.classList.remove('d-none');
+      openPhantomBtn.onclick = () => window.location.href = phantomDeepLink;
+    }
+  }
+
+  // Определяем провайдера
+  const provider =
+    (window.phantom && window.phantom.solana) || // мобильный Phantom (in-app)
+    (window.solana && window.solana.isPhantom && window.solana); // десктопное расширение
+
+  // Если Phantom не найден — показываем дип‑линк
+  if (!provider) {
+    showOpenInPhantom();
+  }
+
+  // Обработчик на кнопку коннекта
+  if (connectBtn) {
+    connectBtn.onclick = async () => {
+      try {
+        // если провайдера нет — сразу предлагаем открыть в Phantom
+        if (!provider) {
+          showOpenInPhantom();
+          alert('Phantom не найден. Откройте сайт в приложении Phantom.');
+          return;
+        }
+        const res = await provider.connect({ onlyIfTrusted: false });
+        const pubkey = (res?.publicKey || provider.publicKey)?.toString();
+        if (pubkey) {
+          connectBtn.textContent = `Connected: ${pubkey.slice(0,4)}...${pubkey.slice(-4)}`;
+          connectBtn.disabled = true;
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Не удалось подключиться: ' + (e?.message || e));
+      }
+    };
+  }
+})();
+</script>
 </body>
 
 </html>
