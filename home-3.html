@@ -185,52 +185,26 @@
                                     </li>
                                 </ul>
                                <!-- Поля твоего баннера -->
-<div class="my-6">
-  <div class="row g-4 align-items-center">
-    <div class="col-md-6">
-      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start">PAY IN (SOL)</span>
-      <input id="zmr-pay" type="number" step="0.001"
-             class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
-    </div>
-    <div class="col-md-6">
-      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start">YOU'LL RECEIVE (ZMR)</span>
-      <input id="zmr-recv" type="text" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0" readonly>
-    </div>
-  </div>
-</div>
 
-<div class="d-flex gap-3">
-  <a id="zmr-connect" href="#" class="btn btn-lg btn-danger w-100">
-    <span class="d-inline-block ff-1">Connect Wallet</span>
-  </a>
-  <a id="zmr-send" href="#" class="btn btn-lg btn-secondary w-100 disabled" aria-disabled="true">
-    <span class="d-inline-block ff-1">Send SOL</span>
-  </a>
-</div>
-
-<!-- ====== СКРИПТЫ ====== -->
-<script type="module">
-  // 1) Импорт через CDN
+                               <script type="module">
   import { createWeb3Modal, defaultSolanaConfig, solana } from 'https://unpkg.com/@web3modal/solana@3/dist/index.js';
   import { Connection, SystemProgram, PublicKey, Transaction } from 'https://esm.sh/@solana/web3.js@1.95.3';
 
-  // 2) Константы пресейла
   const PROJECT_ID = '6d6910ef3c0da38d8c4a5cfae868e032';
   const TREASURY  = new PublicKey('fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq'); // твой адрес для получения SOL
-  const RATE_ZMR_PER_SOL = 500000; // 1 SOL = 500 000 ZMR (≈ $0.0003)
+  const RATE_ZMR_PER_SOL = 500000; // курс токенов за 1 SOL
 
-  // 3) Инициализация Web3Modal (список кошельков)
   const metadata = {
     name: 'ZMR Presale',
     description: 'Buy $ZMR on Solana',
     url: window.location.origin,
-    icons: ['https://fav.farm/🟡'] // можешь заменить на свой логотип
+    icons: ['https://fav.farm/🟡']
   };
 
   const solConfig = defaultSolanaConfig({
     projectId: PROJECT_ID,
     metadata,
-    chains: [solana.mainnet] // mainnet-beta
+    chains: [solana.mainnet]
   });
 
   const modal = createWeb3Modal({
@@ -239,22 +213,18 @@
     themeMode: 'dark'
   });
 
-  // 4) UI элементы
-  const $pay    = document.querySelector('#zmr-pay');
-  const $recv   = document.querySelector('#zmr-recv');
-  const $connect= document.querySelector('#zmr-connect');
-  const $send   = document.querySelector('#zmr-send');
+  const $pay     = document.querySelector('#zmr-pay');
+  const $recv    = document.querySelector('#zmr-recv');
+  const $connect = document.querySelector('#zmr-connect');
+  const $send    = document.querySelector('#zmr-send');
 
-  // калькулятор
   const format = n => (isNaN(n) ? '0' : Math.floor(n).toLocaleString('en-US'));
-  $pay.addEventListener('input', () => {
+  $pay?.addEventListener('input', () => {
     const sol = parseFloat($pay.value || '0');
     $recv.value = format(sol * RATE_ZMR_PER_SOL);
   });
 
-  // Помощники состояния
-  let wallet;      // провайдер выбранного кошелька
-  let publicKey;   // публичный ключ пользователя
+  let wallet, publicKey;
 
   function setConnected(pkStr){
     $connect.classList.replace('btn-danger','btn-success');
@@ -263,21 +233,18 @@
     $send.removeAttribute('aria-disabled');
   }
 
-  // 5) Подключение кошелька (открывает модальное окно кошельков)
-  $connect.addEventListener('click', async (e) => {
+  $connect?.addEventListener('click', async (e) => {
     e.preventDefault();
-    await modal.open(); // покажет выбор кошелька
-    // Ждем провайдера
+    await modal.open();
     wallet = await solConfig.getWalletProvider();
     if (!wallet) return;
-
     await wallet.connect();
-    publicKey = wallet.publicKey?.toBase58 ? wallet.publicKey : new PublicKey(wallet.publicKey);
-    setConnected(publicKey.toBase58 ? publicKey.toBase58() : publicKey);
+    const pk = wallet.publicKey?.toBase58 ? wallet.publicKey.toBase58() : wallet.publicKey.toString();
+    publicKey = pk;
+    setConnected(pk);
   });
 
-  // 6) Отправка SOL на казначейский адрес
-  $send.addEventListener('click', async (e) => {
+  $send?.addEventListener('click', async (e) => {
     e.preventDefault();
     const amountSol = parseFloat($pay.value || '0');
     if (!wallet) { await modal.open(); return; }
@@ -287,29 +254,32 @@
       const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
       const fromPubkey = wallet.publicKey?.toBase58 ? wallet.publicKey : new PublicKey(wallet.publicKey);
 
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey: TREASURY,
-          lamports: BigInt(Math.round(amountSol * 1_000_000_000)) // 1 SOL = 1e9 lamports
-        })
-      );
+      const tx = new Transaction().add(SystemProgram.transfer({
+        fromPubkey,
+        toPubkey: TREASURY,
+        lamports: BigInt(Math.round(amountSol * 1_000_000_000))
+      }));
 
       tx.feePayer = fromPubkey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
-      // Подписываем и отправляем через выбранный кошелёк
       const signed = await wallet.signTransaction(tx);
       const sig = await connection.sendRawTransaction(signed.serialize());
       await connection.confirmTransaction(sig, 'confirmed');
 
-      alert('Payment sent!\nTx: ' + sig + '\nПолучите ' + format(amountSol * RATE_ZMR_PER_SOL) + ' ZMR');
+      alert('Payment sent!\nTx: ' + sig + '\nВы получите ~ ' + format(amountSol * RATE_ZMR_PER_SOL) + ' ZMR');
     } catch (err) {
       console.error(err);
       alert('Payment error: ' + (err?.message || err));
     }
   });
 </script> 
+
+
+                               <input id="zmr-pay"  type="number" class="form-control" value="0">
+<input id="zmr-recv" type="text" class="form-control" value="0" readonly>
+<a id="zmr-connect" class="btn btn-lg btn-danger w-100">Connect Wallet</a>
+<a id="zmr-send" class="btn btn-lg btn-secondary w-100 disabled" aria-disabled="true">Send SOL</a> 
                                 <div class="my-6">
                                     <div class="row g-4 align-items-center">
                                         <div class="col-md-6">
