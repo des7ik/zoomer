@@ -996,6 +996,109 @@
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></script>
+
+
+    <!-- Solana web3.js -->
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.4/lib/index.iife.min.js"></script>
+
+<script>
+/*** 🔧 НАСТРОЙКИ — ПОМЕНЯЙ ПОД СЕБЯ ***/
+// твой кошелёк для сбора SOL (treasury)
+const TREASURY_ADDRESS = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq";
+// цена SOL в USD (меняй по ситуации). Пример: 150 означает $150 за 1 SOL
+const SOL_USD = 150;
+// цена 1 ZMR = $0.0003 (зафиксировано)
+const ZMR_USD = 0.0003;
+// курс предпродажи (ZMR за 1 SOL)
+const RATE_ZMR_PER_SOL = SOL_USD / ZMR_USD;
+// сеть: для тестов можно "devnet", для прода — "mainnet-beta"
+const NETWORK = "mainnet-beta";
+/*** конец настроек ***/
+
+const { Connection, SystemProgram, PublicKey, LAMPORTS_PER_SOL } = solanaWeb3;
+const connection = new Connection(solanaWeb3.clusterApiUrl(NETWORK), "confirmed");
+
+const $sol  = document.getElementById("presale-sol");
+const $zmr  = document.getElementById("presale-zmr");
+const $rate = document.getElementById("rate-text");
+const $trea = document.getElementById("treasury-text");
+const $status = document.getElementById("presale-status");
+const $btnConnect = document.getElementById("btn-connect");
+const $btnPay = document.getElementById("btn-pay");
+const $btnCopy = document.getElementById("btn-copy");
+const $copyOk = document.getElementById("copy-ok");
+
+let wallet = null;      // провайдер Phantom
+let walletPubkey = null;
+
+// Инициализация текста
+$rate.textContent = `1 SOL ≈ ${Math.floor(RATE_ZMR_PER_SOL).toLocaleString()} ZMR (при SOL = $${SOL_USD})`;
+$trea.textContent = TREASURY_ADDRESS;
+
+// Пересчёт ZMR при вводе SOL
+$sol.addEventListener("input", () => {
+  const solAmt = parseFloat($sol.value || "0");
+  const zmrAmt = solAmt * RATE_ZMR_PER_SOL;
+  $zmr.value = Number.isFinite(zmrAmt) ? Math.floor(zmrAmt).toLocaleString() : "";
+});
+
+// Подключение кошелька
+$btnConnect.addEventListener("click", async () => {
+  try {
+    const provider = window?.phantom?.solana || window?.solana;
+    if (!provider || !provider.isPhantom) {
+      // deep link для мобильного Phantom
+      const url = new URL(window.location.href);
+      const deeplink = `https://phantom.app/ul/browse/${encodeURIComponent(url.origin + url.pathname)}`;
+      $status.innerHTML = `<a href="${deeplink}" target="_blank" rel="noopener">Open in Phantom</a>`;
+      return;
+    }
+    wallet = provider;
+    const resp = await wallet.connect();
+    walletPubkey = resp.publicKey;
+    $btnPay.disabled = false;
+    $status.textContent = `Connected: ${walletPubkey.toBase58().slice(0,4)}…${walletPubkey.toBase58().slice(-4)}`;
+  } catch (e) {
+    $status.textContent = `Connect error: ${e.message || e}`;
+  }
+});
+
+// Оплата (перевод SOL на казначейство)
+$btnPay.addEventListener("click", async () => {
+  try {
+    const solAmt = parseFloat($sol.value || "0");
+    if (!wallet || !walletPubkey) throw new Error("Wallet not connected");
+    if (!solAmt || solAmt <= 0)   throw new Error("Enter SOL amount");
+
+    const lamports = Math.round(solAmt * LAMPORTS_PER_SOL);
+    const tx = new solanaWeb3.Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: walletPubkey,
+        toPubkey: new PublicKey(TREASURY_ADDRESS),
+        lamports,
+      })
+    );
+    tx.feePayer = walletPubkey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+    $status.textContent = "Awaiting wallet confirmation…";
+    const res = await wallet.signAndSendTransaction(tx);
+    const signature = res.signature || res; // совместимость со старыми версиями
+    $status.innerHTML = `Sent! Tx: <a href="https://solscan.io/tx/${signature}${NETWORK==='devnet' ? '?cluster=devnet':''}" target="_blank" rel="noopener">view</a>`;
+  } catch (e) {
+    $status.textContent = `Payment error: ${e.message || e}`;
+  }
+});
+
+// Копирование адреса
+$btnCopy.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(TREASURY_ADDRESS);
+    $copyOk.style.display = "inline";
+    setTimeout(() => ($copyOk.style.display = "none"), 1500);
+  } catch {}
+});
+</script>
 </body>
 
 </html>
