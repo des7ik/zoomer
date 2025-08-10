@@ -966,6 +966,76 @@
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></script>
+
+
+    <div class="card p-3 rounded-4 border border-dark bg-light">
+  <label class="d-block mb-2 fw-bold">Pay in (SOL)</label>
+  <input id="solIn" type="number" step="0.001" min="0" class="form-control mb-3" placeholder="0.1">
+  <small class="d-block mb-3">You'll receive (ZMR): <span id="zmrOut">0</span></small>
+
+  <div class="d-flex gap-3">
+    <a id="openWallet" class="btn btn-secondary">Open in Wallet</a>
+    <button id="copyAddr" class="btn btn-light">Copy Treasury</button>
+  </div>
+
+  <small class="d-block mt-3 text-muted">
+    Treasury: <code id="treasury">fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq</code>
+  </small>
+</div>
+
+<script>
+  const TREASURY = 'fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq';
+  const RATE_ZMR_PER_SOL = 500000; // 1 SOL = 500 000 ZMR (≈ $150 → 1 ZMR ≈ $0.0003)
+
+  const solIn = document.getElementById('solIn');
+  const zmrOut = document.getElementById('zmrOut');
+  const openBtn = document.getElementById('openWallet');
+  const copyBtn = document.getElementById('copyAddr');
+
+  function updateOut() {
+    const sol = parseFloat(solIn.value || '0');
+    zmrOut.textContent = isNaN(sol) ? '0' : Math.floor(sol * RATE_ZMR_PER_SOL).toLocaleString();
+  }
+  solIn.addEventListener('input', updateOut); updateOut();
+
+  function buildSolanaUrl(sol) {
+    // универсальная Solana Pay ссылка
+    const params = new URLSearchParams({
+      amount: sol.toString(),
+      label: 'ZMR Presale',
+      message: 'ZMR Presale Payment',
+      memo: 'ZMR-PRE'
+    });
+    return `solana:${TREASURY}?` + params.toString();
+  }
+  function buildPhantomUrl(sol) {
+    // deep‑link на Phantom (если solana: не перехватится)
+    const params = new URLSearchParams({
+      recipient: TREASURY,
+      amount: sol.toString(),
+      label: 'ZMR Presale',
+      message: 'ZMR Presale Payment',
+      reference: 'ZMR-PRE'
+    });
+    return 'https://phantom.app/ul/v1/transfer?' + params.toString();
+  }
+
+  openBtn.addEventListener('click', () => {
+    const sol = parseFloat(solIn.value || '0');
+    if (!sol || sol <= 0) { alert('Введите сумму в SOL'); return; }
+    const url = buildSolanaUrl(sol);
+    // Пытаемся открыть solana: ссылку; если браузер не поддерживает — откроем Phantom
+    const a = document.createElement('a');
+    a.href = url; a.rel = 'noopener'; a.target = '_blank';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => { window.open(buildPhantomUrl(sol), '_blank'); }, 600);
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(TREASURY);
+    copyBtn.textContent = 'Copied!'; setTimeout(()=>copyBtn.textContent='Copy Treasury', 1200);
+  });
+</script>
 </body>
 
 </html>
