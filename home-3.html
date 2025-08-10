@@ -184,23 +184,31 @@
                                         </a>
                                     </li>
                                 </ul>
-                               <div class="my-6">
+                              <div class="my-6" id="zmr-presale">
   <div class="row g-4 align-items-center">
     <div class="col-md-6">
-      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> PAY IN (SOL) </span>
-      <input id="payIn" type="number" step="0.01" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
+      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start">PAY IN (SOL)</span>
+      <input id="payIn" type="number" step="0.0001" min="0" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0">
     </div>
     <div class="col-md-6">
-      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> RECEIVED IN (ZMR) </span>
+      <span class="d-block text-heading fs-14 fw-bold ff-2 text-start">RECEIVED IN (ZMR)</span>
       <input id="receivedIn" type="text" class="form-control form-control-lg border border-dark rounded-3 shadow-sharp" value="0" readonly>
     </div>
   </div>
 </div>
 
-<a id="buyBtn" href="#" target="_blank" class="btn btn-lg btn-danger align-items-center rounded w-100 justify-content-center text-light">
-  <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
-  <span class="d-inline-block ff-1"> Connect Wallet </span>
-</a>
+<div class="d-flex gap-3">
+  <a id="connectBtn" href="#" class="btn btn-lg btn-danger align-items-center rounded w-100 justify-content-center text-light">
+    <iconify-icon icon="mingcute:binance-coin-bnb-fill"></iconify-icon>
+    <span class="d-inline-block ff-1">Connect Wallet</span>
+  </a>
+  <a id="sendBtn" href="#" class="btn btn-lg btn-secondary align-items-center rounded w-100 justify-content-center text-heading disabled" aria-disabled="true">
+    <span class="d-inline-block ff-1">Send SOL</span>
+  </a>
+</div>
+
+<!-- Опционально место для статуса -->
+<div id="txStatus" class="mt-3 small text-heading"></div>
 
 <script>
   const walletAddress = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой адрес
@@ -1058,6 +1066,120 @@
     await navigator.clipboard.writeText(TREASURY);
     copyBtn.textContent = 'Copied!'; setTimeout(()=>copyBtn.textContent='Copy Treasury', 1200);
   });
+</script>
+    <!-- Polyfill Buffer для web3.js в браузере -->
+<script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.min.js"></script>
+<script>window.Buffer = buffer.Buffer;</script>
+
+<!-- Solana web3.js (UMD, создаёт глобальный solanaWeb3) -->
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+
+<script>
+  // ====== НАСТРОЙКИ ПРЕСЕЙЛА ======
+  const TREASURY = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой кошелёк
+  const ZMR_PRICE_USD = 0.0003; // 1 ZMR = $0.0003
+  const SOL_PRICE_USD = 150;    // временно фиксированный курс SOL (можно потом подтягивать по API)
+  const NETWORK = "mainnet-beta"; // mainnet-beta | devnet
+  const RPC_URL = "https://api.mainnet-beta.solana.com"; // публичный RPC
+
+  // ====== UI ЭЛЕМЕНТЫ ======
+  const payInInput     = document.getElementById("payIn");
+  const receivedInput  = document.getElementById("receivedIn");
+  const connectBtn     = document.getElementById("connectBtn");
+  const sendBtn        = document.getElementById("sendBtn");
+  const txStatus       = document.getElementById("txStatus");
+
+  // Пересчёт ZMR по вводу SOL
+  function recalc() {
+    const sol = parseFloat(payInInput.value || "0");
+    const usd = sol * SOL_PRICE_USD;
+    const zmr = usd / ZMR_PRICE_USD; // сколько ZMR за введённые SOL
+    receivedInput.value = isFinite(zmr) ? Math.floor(zmr).toLocaleString() : "0";
+  }
+  payInInput.addEventListener("input", recalc);
+  recalc();
+
+  // ====== Работа с Phantom ======
+  let provider = null;
+  let walletPubkey = null;
+  const connection = new solanaWeb3.Connection(RPC_URL, "confirmed");
+
+  function getProvider() {
+    const anyWindow = window;
+    if ("solana" in anyWindow && anyWindow.solana?.isPhantom) {
+      return anyWindow.solana;
+    }
+    return null;
+  }
+
+  async function connectWallet(e) {
+    e.preventDefault();
+    provider = getProvider();
+    if (!provider) {
+      txStatus.innerHTML = `Phantom не найден. <a href="https://phantom.app/download" target="_blank" rel="noreferrer">Установить Phantom</a>`;
+      return;
+    }
+    try {
+      const resp = await provider.connect({ onlyIfTrusted: false });
+      walletPubkey = resp.publicKey;
+      connectBtn.classList.remove("btn-danger");
+      connectBtn.classList.add("btn-light");
+      connectBtn.innerHTML = `<span class="d-inline-block ff-1">Connected: ${walletPubkey.toBase58().slice(0,4)}…${walletPubkey.toBase58().slice(-4)}</span>`;
+      // Включаем кнопку отправки
+      sendBtn.classList.remove("disabled");
+      sendBtn.removeAttribute("aria-disabled");
+      txStatus.textContent = "Кошелёк подключён. Введите сумму и жмите Send SOL.";
+    } catch (err) {
+      txStatus.textContent = "Отмена или ошибка подключения.";
+      console.error(err);
+    }
+  }
+
+  async function sendSol(e) {
+    e.preventDefault();
+    if (!walletPubkey) {
+      txStatus.textContent = "Сначала подключите кошелёк.";
+      return;
+    }
+    const solAmount = parseFloat(payInInput.value || "0");
+    if (!solAmount || solAmount <= 0) {
+      txStatus.textContent = "Введите сумму SOL.";
+      return;
+    }
+
+    try {
+      txStatus.textContent = "Готовим транзакцию…";
+      const lamports = Math.round(solAmount * solanaWeb3.LAMPORTS_PER_SOL);
+      const treasuryPubkey = new solanaWeb3.PublicKey(TREASURY);
+
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
+
+      const tx = new solanaWeb3.Transaction({
+        recentBlockhash: blockhash,
+        feePayer: walletPubkey
+      }).add(
+        solanaWeb3.SystemProgram.transfer({
+          fromPubkey: walletPubkey,
+          toPubkey: treasuryPubkey,
+          lamports
+        })
+      );
+
+      // Подписать и отправить через Phantom
+      const { signature } = await provider.signAndSendTransaction(tx);
+      txStatus.innerHTML = `Отправлено. Ждём подтверждение…<br>Tx: <a href="https://solscan.io/tx/${signature}" target="_blank" rel="noreferrer">${signature.slice(0,8)}…</a>`;
+
+      // Ждём подтверждение
+      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+      txStatus.innerHTML = `✅ Оплата подтверждена! <a href="https://solscan.io/tx/${signature}" target="_blank" rel="noreferrer">Открыть в Solscan</a>`;
+    } catch (err) {
+      console.error(err);
+      txStatus.textContent = "Ошибка при отправке: " + (err?.message || err);
+    }
+  }
+
+  connectBtn.addEventListener("click", connectWallet);
+  sendBtn.addEventListener("click", sendSol);
 </script>
 </body>
 
