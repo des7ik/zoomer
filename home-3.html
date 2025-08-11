@@ -1043,7 +1043,87 @@
   }
 </script>
 <!-- End Reown AppKit integration -->
+<!-- Reown AppKit integration (LOCAL FIRST, then multi-CDN fallbacks) -->
+<script type="module">
+  const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032"; // ваш реальный Project ID
 
+  const sources = [
+    // 1) Local copies served from your domain (created during Netlify build)
+    { appkit: "/assets/js/reown/appkit.js",
+      networks: "/assets/js/reown/networks.js",
+      adapter: "/assets/js/reown/adapter-wagmi.js" },
+
+    // 2) Fallback CDNs if local files вдруг отсутствуют
+    { appkit: "https://unpkg.com/@reown/appkit/+esm",
+      networks: "https://unpkg.com/@reown/appkit/networks/+esm",
+      adapter: "https://unpkg.com/@reown/appkit-adapter-wagmi/+esm" },
+    { appkit: "https://esm.sh/@reown/appkit",
+      networks: "https://esm.sh/@reown/appkit/networks",
+      adapter: "https://esm.sh/@reown/appkit-adapter-wagmi" },
+    { appkit: "https://cdn.jsdelivr.net/npm/@reown/appkit/+esm",
+      networks: "https://cdn.jsdelivr.net/npm/@reown/appkit/networks/+esm",
+      adapter: "https://cdn.jsdelivr.net/npm/@reown/appkit-adapter-wagmi/+esm" }
+  ];
+
+  async function init() {
+    let lastError = null;
+    for (const src of sources) {
+      try {
+        const [{ createAppKit }, networksMod, { WagmiAdapter }] = await Promise.all([
+          import(/* @vite-ignore */ src.appkit),
+          import(/* @vite-ignore */ src.networks),
+          import(/* @vite-ignore */ src.adapter)
+        ]);
+
+        const { mainnet, arbitrum } = networksMod;
+        const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks: [mainnet, arbitrum] });
+
+        const appkit = createAppKit({
+          adapters: [wagmiAdapter],
+          projectId: PROJECT_ID,
+          networks: [mainnet, arbitrum],
+          metadata: {
+            name: document.title,
+            description: "Reown AppKit local-first",
+            url: window.location.origin,
+            icons: [ (document.querySelector('link[rel=\"icon\"]')?.href) || (new URL('/favicon.ico', location.href)).href ]
+          }
+        });
+
+        // Add floating button if none present
+        if (!document.querySelector('appkit-button')) {
+          const wrap = document.createElement('div');
+          wrap.style.position = 'fixed';
+          wrap.style.right = '16px';
+          wrap.style.bottom = '16px';
+          wrap.style.zIndex = '9999';
+          wrap.innerHTML = '<appkit-button></appkit-button> <appkit-network-button></appkit-network-button>';
+          document.body.appendChild(wrap);
+        }
+
+        // Open modal by data attribute
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-appkit-open]');
+          if (btn) {
+            e.preventDefault();
+            appkit.open();
+          }
+        }, { passive: false });
+
+        console.log("[Reown] initialized via", src.appkit);
+        return;
+      } catch (err) {
+        lastError = err;
+        console.warn("[Reown] failed via", src.appkit, err);
+      }
+    }
+    alert("Не удалось загрузить Reown локально и с CDN. Проверьте build и папку assets/js/reown.");
+    throw lastError || new Error("Reown load failed");
+  }
+
+  init();
+</script>
+<!-- End Reown AppKit integration -->
 </body>
 
 </html>
