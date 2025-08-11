@@ -956,6 +956,73 @@
 <!-- CTA Section End -->
 </div>
 </div>
+  <!-- Reown AppKit (CDN с фолбэками) -->
+<script type="module">
+  const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032";
+
+  const cdn = [
+    { appkit: "https://unpkg.com/@reown/appkit/+esm",
+      nets:   "https://unpkg.com/@reown/appkit/networks/+esm",
+      wagmi:  "https://unpkg.com/@reown/appkit-adapter-wagmi/+esm" },
+    { appkit: "https://cdn.jsdelivr.net/npm/@reown/appkit/+esm",
+      nets:   "https://cdn.jsdelivr.net/npm/@reown/appkit/networks/+esm",
+      wagmi:  "https://cdn.jsdelivr.net/npm/@reown/appkit-adapter-wagmi/+esm" },
+    { appkit: "https://esm.sh/@reown/appkit",
+      nets:   "https://esm.sh/@reown/appkit/networks",
+      wagmi:  "https://esm.sh/@reown/appkit-adapter-wagmi" }
+  ];
+
+  (async () => {
+    let lastErr;
+    for (const s of cdn) {
+      try {
+        const [{ createAppKit }, networks, { WagmiAdapter }] = await Promise.all([
+          import(s.appkit), import(s.nets), import(s.wagmi)
+        ]);
+
+        const { mainnet, arbitrum } = networks;
+        const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks: [mainnet, arbitrum] });
+
+        const appkit = createAppKit({
+          adapters: [wagmiAdapter],
+          projectId: PROJECT_ID,
+          networks: [mainnet, arbitrum],
+          metadata: {
+            name: document.title || "Memeworld",
+            description: "Reown AppKit integration",
+            url: location.origin,
+            icons: [document.querySelector('link[rel="icon"]')?.href || new URL('/favicon.ico', location).href]
+          }
+        });
+
+        // Открываем модалку по клику на нашу кнопку
+        document.addEventListener('click', (e) => {
+          const el = e.target.closest('[data-appkit-open]');
+          if (!el) return;
+          e.preventDefault();
+          appkit.open();
+        }, { passive: false });
+
+        // На всякий случай — плавающие кнопки
+        if (!document.querySelector('appkit-button')) {
+          const wrap = document.createElement('div');
+          wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:9999';
+          wrap.innerHTML = '<appkit-button></appkit-button> <appkit-network-button></appkit-network-button>';
+          document.body.appendChild(wrap);
+        }
+
+        console.log("[Reown] loaded via", s.appkit);
+        return;
+      } catch (e) {
+        lastErr = e;
+        console.warn("[Reown] failed via", s.appkit, e);
+      }
+    }
+    alert("Не удалось загрузить Reown (возможна блокировка CDN).");
+    throw lastErr || new Error("Reown load failed");
+  })();
+</script>
+<!-- /Reown AppKit -->
 <!-- Scripts -->
 <script src="assets/js/bootstrap.bundle.js"></script>
 <script src="assets/js/iconify.js"></script>
@@ -967,50 +1034,6 @@
 <script src="assets/js/Flip.min.js"></script>
 <script src="assets/js/app.js"></script>
 
-<!-- Reown AppKit (CDN, clean) -->
-<script type="module">
-  import { createAppKit } from "https://unpkg.com/@reown/appkit/+esm";
-  import { mainnet, arbitrum } from "https://unpkg.com/@reown/appkit/networks/+esm";
-  import { WagmiAdapter } from "https://unpkg.com/@reown/appkit-adapter-wagmi/+esm";
 
-  const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032";
-
-  (async () => {
-    const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks: [mainnet, arbitrum] });
-
-    const appkit = createAppKit({
-      adapters: [wagmiAdapter],
-      projectId: PROJECT_ID,
-      networks: [mainnet, arbitrum],
-      metadata: {
-        name: document.title || "Memeworld",
-        description: "Reown AppKit integration",
-        url: location.origin,
-        icons: [document.querySelector('link[rel=\"icon\"]')?.href || new URL('/favicon.ico', location).href]
-      }
-    });
-
-    document.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-appkit-open],a,button');
-      if (!el) return;
-      const text = (el.textContent || '').toLowerCase();
-      if (el.hasAttribute('data-appkit-open') || text.includes('connect wallet')) {
-        e.preventDefault();
-        appkit.open();
-      }
-    }, { passive: false });
-
-    if (!document.querySelector('appkit-button')) {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:9999';
-      wrap.innerHTML = '<appkit-button></appkit-button> <appkit-network-button></appkit-network-button>';
-      document.body.appendChild(wrap);
-    }
-  })().catch(err => {
-    console.error('Reown init failed', err);
-    alert('Не удалось инициализировать Reown. Проверьте, что CDN (unpkg) доступен по HTTPS.');
-  });
-</script>
-<!-- /Reown AppKit -->
 </body>
 </html>
