@@ -1,6 +1,0 @@
-[build]
-  publish = "."
-  command = "bash scripts/fetch-reown.sh"
-
-[build.environment]
-  NODE_VERSION = "18"
