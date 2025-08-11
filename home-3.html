@@ -966,50 +966,29 @@
 <script src="assets/js/Flip.min.js"></script>
 <script src="assets/js/app.js"></script>
 
-<!-- Reown AppKit — локальные импорты -->
 <script type="module">
-  const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032";
+  import { createAppKit } from './assets/js/reown/appkit.js';
+  import { mainnet, arbitrum } from './assets/js/reown/networks.js';
+  import { WagmiAdapter } from './assets/js/reown/adapter-wagmi.js';
+
+  const PROJECT_ID = '6d6910ef3c0da38d8c...';
 
   (async () => {
-    const [{ createAppKit }, nets, { WagmiAdapter }] = await Promise.all([
-      import('/assets/js/reown/appkit.js'),
-      import('/assets/js/reown/networks.js'),
-      import('/assets/js/reown/adapter-wagmi.js')
-    ]);
-
-    const { mainnet, arbitrum } = nets;
-    const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks: [mainnet, arbitrum] });
-
+    const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID });
     const appkit = createAppKit({
       adapters: [wagmiAdapter],
       projectId: PROJECT_ID,
       networks: [mainnet, arbitrum],
       metadata: {
-        name: document.title || 'Memeworld',
-        description: 'Reown AppKit (local)',
+        name: document.title,
+        description: "Reown AppKit integration",
         url: location.origin,
-        icons: [document.querySelector('link[rel="icon"]')?.href || new URL('/favicon.ico', location).href]
+        icons: []
       }
     });
 
-    document.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-appkit-open]');
-      if (!el) return;
-      e.preventDefault();
-      appkit.open();
-    }, { passive:false });
-
-    if (!document.querySelector('appkit-button')) {
-      const w=document.createElement('div'); 
-      w.style.cssText='position:fixed;right:16px;bottom:16px;z-index:9999';
-      w.innerHTML='<appkit-button></appkit-button> <appkit-network-button></appkit-network-button>';
-      document.body.appendChild(w);
-    }
-  })().catch((e) => {
-    console.error('Reown init error', e);
-    alert('Reown не инициализировался. Проверь, что файлы доступны: /assets/js/reown/appkit.js, networks.js, adapter-wagmi.js');
-  });
+    appkit.open();
+  })();
 </script>
-<!-- /Reown AppKit -->
 </body>
 </html>
