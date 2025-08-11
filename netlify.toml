@@ -1,4 +1,0 @@
-[build]
-  publish = "."
-  command = "npm ci && npm run build-copy"
-  node_version = "18"
