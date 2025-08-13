@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZMR Presale</title>
+</head>
+<body>
+  <h1 style="text-align:center;">ZMR Presale</h1>
+  <div style="text-align:center; margin:20px;">
+    <a href="#" data-appkit-open style="display:inline-block;padding:10px 20px;background:#ffcc00;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">
+      Connect Wallet
+    </a>
+  </div>
+  <div style="max-width:400px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
+    <h2>Калькулятор покупки ZMR</h2>
+    <p>1 ZMR = $0.0003</p>
+    <label>PAY IN (ZMR):</label>
+    <input id="zmr" type="number" min="1" step="1" style="width:100%;padding:10px;" />
+    <p>Сумма в USD: <b><span id="usd">0.00</span></b></p>
+    <label>RECEIVED IN (SOL):</label>
+    <input id="sol" type="text" disabled style="width:100%;padding:10px;" />
+    <p>Курс SOL→USD: <span id="rateNote">—</span></p>
+    <label>Ручной курс SOL→USD:</label>
+    <input id="rate" type="number" step="0.0001" style="width:100%;padding:10px;" />
+    <div style="margin-top:20px;">
+      <a id="pay" href="#" style="display:block;text-align:center;padding:10px;background:red;color:white;text-decoration:none;border-radius:8px;margin-bottom:10px;">Оплатить в SOL</a>
+      <button id="copyLink" style="width:100%;padding:10px;margin-bottom:5px;">Скопировать ссылку оплаты</button>
+      <button id="copyAddr" style="width:100%;padding:10px;">Скопировать адрес</button>
+      <p>Адрес получателя: <code id="addr">fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq</code></p>
+    </div>
+  </div>
+  <script type="module">
+    const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032";
+    (async () => {
+      const [{ createAppKit }, nets, { WagmiAdapter }] = await Promise.all([
+        import('/assets/js/reown/appkit.js'),
+        import('/assets/js/reown/networks.js'),
+        import('/assets/js/reown/adapter-wagmi.js')
+      ]);
+      const { mainnet, arbitrum } = nets;
+      const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks: [mainnet, arbitrum] });
+      const appkit = createAppKit({
+        adapters: [wagmiAdapter],
+        projectId: PROJECT_ID,
+        networks: [mainnet, arbitrum],
+        metadata: {
+          name: document.title || "ZMR Presale",
+          description: "Reown AppKit integration",
+          url: location.origin,
+          icons: []
+        }
+      });
+      document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-appkit-open]');
+        if (!el) return;
+        e.preventDefault();
+        appkit.open();
+      });
+    })();
+  </script>
+  <script>
+    const PRICE_PER_ZMR_USD = 0.0003;
+    const RECIPIENT = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq";
+    const $zmr = document.getElementById('zmr');
+    const $usd = document.getElementById('usd');
+    const $sol = document.getElementById('sol');
+    const $rate = document.getElementById('rate');
+    const $rateNote = document.getElementById('rateNote');
+    const $pay = document.getElementById('pay');
+    let solUsd = null;
+    let payUrl = "";
+    function fmt(n, d = 6) {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return "0";
+      return x.toFixed(d).replace(/\.0+$/, "");
+    }
+    function buildSolPayUrl(amountSol, zmrAmount) {
+      const p = new URLSearchParams({
+        amount: fmt(amountSol),
+        label: "ZMR Purchase",
+        message: `Buy ${zmrAmount} ZMR`,
+        memo: "zmr-presale"
+      });
+      return `solana:${RECIPIENT}?${p.toString()}`;
+    }
+    async function fetchRate() {
+      try {
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        const data = await res.json();
+        const v = Number(data?.solana?.usd);
+        if (!Number.isFinite(v)) throw new Error('bad');
+        solUsd = v;
+        $rate.value = v;
+        $rateNote.textContent = `$${v.toFixed(2)} за 1 SOL`;
+      } catch {
+        $rateNote.textContent = "Введите вручную";
+      }
+      recalc();
+    }
+    function recalc() {
+      const zmr = Number($zmr.value);
+      const manualRate = Number($rate.value);
+      if (manualRate > 0) solUsd = manualRate;
+      if (!Number.isFinite(zmr) || zmr <= 0) {
+        $usd.textContent = "0.00";
+        $sol.value = "0";
+        $pay.removeAttribute('href'); 
+        payUrl = "";
+        return;
+      }
+      const usd = zmr * PRICE_PER_ZMR_USD;
+      $usd.textContent = usd.toFixed(2);
+      if (solUsd && solUsd > 0) {
+        const sol = usd / solUsd;
+        $sol.value = fmt(sol, 6);
+        payUrl = buildSolPayUrl(sol, zmr);
+        $pay.setAttribute('href', payUrl);
+      } else {
+        $sol.value = "—";
+        $pay.removeAttribute('href');
+        payUrl = "";
+      }
+    }
+    $zmr.addEventListener('input', recalc);
+    $rate.addEventListener('input', recalc);
+    document.getElementById('copyLink').addEventListener('click', async () => {
+      if (!payUrl) return;
+      try { await navigator.clipboard.writeText(payUrl); } catch {}
+    });
+    document.getElementById('copyAddr').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(RECIPIENT); } catch {}
+    });
+    fetchRate();
+  </script>
+</body>
+</html>
