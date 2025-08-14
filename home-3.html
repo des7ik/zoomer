@@ -173,6 +173,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZMR Presale</title>
 </head>
+    </div>
+<div style="max-width:400px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
+  <h2>ZMR Purchase Calculator</h2>
+  <p>1 ZMR = $0.0003</p>
+
+  <label>RECEIVED IN (ZMR):</label>
+  <input id="zmr" type="number" min="1" step="1" style="width:100%;padding:10px;" />
+
+  <p>Amount in USD: <b><span id="usd">0.00</span></b></p>
+
+  <label>PAY IN (SOL):</label>
+  <input id="sol" type="text" disabled style="width:100%;padding:10px;" />
+
+  <p>SOL→USD rate: <span id="rateNote">—</span></p>
+
+  <label>Manual SOL→USD rate:</label>
+  <input id="rate" type="number" step="0.0001" style="width:100%;padding:10px;" />
+
+  <div style="margin-top:20px;">
+    <a id="pay" href="#" style="display:block;text-align:center;padding:10px;background:red;color:white;text-decoration:none;border-radius:8px;margin-bottom:10px;">Pay in SOL</a>
+    <button id="copyLink" style="width:100%;padding:10px;margin-bottom:5px;">Copy Payment Link</button>
+    <button id="copyAddr" style="width:100%;padding:10px;">Copy Address</button>
+    <p>Recipient address: <code id="addr">fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq</code></p>
+  </div>
+</div>
+
+<script type="module">
+  const PROJECT_ID = "6d6910ef3c0da38d8c4a5cfae868e032";
+  (async () => {
+    const [{ createAppKit }, nets, { WagmiAdapter }] = await Promise.all([
+      import('/assets/js/reown/appkit.js'),
+      import('/assets/js/reown/networks.js'),
+      import('/assets/js/reown/adapter-wagmi.js')
+    ]);
+    const { mainnet, arbitrum } = nets;
+    const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks: [mainnet, arbitrum] });
+    const appkit = createAppKit({
+      adapters: [wagmiAdapter],
+      projectId: PROJECT_ID,
+      networks: [mainnet, arbitrum],
+      metadata: {
+        name: document.title || "ZMR Presale",
+        description: "Reown AppKit integration",
+        url: location.origin,
+        icons: []
+      }
+    });
+    document.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-appkit-open]');
+      if (!el) return;
+      e.preventDefault();
+      appkit.open();
+    });
+  })();
+</script>
 <body>
   <h1 style="text-align:center;">ZMR Presale</h1>
   <div style="text-align:center; margin:20px;">
@@ -180,26 +235,7 @@
       Connect Wallet
     </a>
   </div>
-  <div style="max-width:400px;margin:0 auto;padding:20px;border:1px solid #ddd;border-radius:8px;">
-    <h2>Buy ZMR</h2>
-    <p>1 ZMR = $0.0003</p>
-    <label>RECEIVED IN (ZMR):</label>
-    <input id="zmr" type="number" min="1" step="1" style="width:100%;padding:10px;" />
-    <p> price in USD: <b><span id="usd">0.00</span></b></p>
-    <label>PAY IN (SOL):</label>
-    <input id="sol" type="text" disabled style="width:100%;padding:10px;" />
-    <p>Курс SOL→USD: <span id="rateNote">—</span></p>
-       <label>SOL→USD:</label>
-        <input id="rate" type="number" step="0.0001"disabled style="width:100%;padding:10px;" />
-    
-    
-    <div style="margin-top:20px;">
-      <a id="pay" href="#" style="display:block;text-align:center;padding:10px;background:red;color:white;text-decoration:none;border-radius:8px;margin-bottom:10px;">Pay in SOL</a>
-      
-      <button id="copyAddr" style="width:100%;padding:10px;">Copy adress</button>
-      <p>CA <code id="addr">fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq</code></p>
-    </div>                   </div>
-                    </div>
+                  </div>
                 </div>
                 <img src="assets/img/hero-img-3.png" alt="image" class="img-fluid hero-3__img gsap-fade-in" data-delay="2.25" data-y="25" data-dureation="2">
                 <img src="assets/img/shape/hero-bg-4.png" alt="image" class="img-fluid position-absolute start-0 bottom-0 z-n2 pointer-none gsap-fade-in" data-delay="3.5">
