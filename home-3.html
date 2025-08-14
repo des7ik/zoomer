@@ -190,7 +190,7 @@
   <p>SOL→USD rate: <span id="rateNote">—</span></p>
 
   <label>Manual SOL→USD rate:</label>
-  <input id="rate" type="number" step="0.0001" style="width:100%;padding:10px;" />
+  <input id="rate" type="number" step="0.0001" disabled style="width:100%;padding:10px;" />
 
   <div style="margin-top:20px;">
     <a id="pay" href="#" style="display:block;text-align:center;padding:10px;background:red;color:white;text-decoration:none;border-radius:8px;margin-bottom:10px;">Pay in SOL</a>
@@ -229,14 +229,7 @@
     });
   })();
 </script>
-    document.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-appkit-open]');
-      if (!el) return;
-      e.preventDefault();
-      appkit.open();
-    });
-  })();
-</script>
+    
 <body>
   <h1 style="text-align:center;">ZMR Presale</h1>
   <div style="text-align:center; margin:20px;">
