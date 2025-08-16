@@ -1015,97 +1015,97 @@
     <script src="assets/js/app.js"></script>
 
   <script>
-  const PRICE_PER_ZMR_USD = 0.0003;
-  const RECIPIENT = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq";
+  const PRICE_PER_ZMR_USD = 0.0003;
+  const RECIPIENT = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq";
 
-  const $zmr = document.getElementById('zmr');
-  const $usd = document.getElementById('usd');
-  const $sol = document.getElementById('sol');
-  const $rate = document.getElementById('rate');
-  const $rateNote = document.getElementById('rateNote');
-  const $pay = document.getElementById('pay');
-  const $copyLink = document.getElementById('copyLink');
-  const $copyAddr = document.getElementById('copyAddr');
+  const $zmr = document.getElementById('zmr');
+  const $usd = document.getElementById('usd');
+  const $sol = document.getElementById('sol');
+  const $rate = document.getElementById('rate');
+  const $rateNote = document.getElementById('rateNote');
+  const $pay = document.getElementById('pay');
+  const $copyLink = document.getElementById('copyLink');
+  const $copyAddr = document.getElementById('copyAddr');
 
-  let solUsd = null;   // 1 SOL in USD
-  let payUrl = "";
+  let solUsd = null;   // 1 SOL in USD
+  let payUrl = "";
 
-  function fmt(n, d = 6) {
-    const x = Number(n);
-    if (!Number.isFinite(x)) return "0";
-    return x.toFixed(d).replace(/\.?0+$/,'');
-  }
+  function fmt(n, d = 6) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return "0";
+    return x.toFixed(d).replace(/\.?0+$/,'');
+  }
 
-  function buildSolPayUrl(amountSol, zmrAmount) {
-    const p = new URLSearchParams({
-      amount: fmt(amountSol),
-      label: "ZMR Purchase",
-      message: `Buy ${zmrAmount} ZMR`,
-      memo: "zmr-presale"
-    });
-    return `solana:${RECIPIENT}?${p.toString()}`;
-  }
+  function buildSolPayUrl(amountSol, zmrAmount) {
+    const p = new URLSearchParams({
+      amount: fmt(amountSol),
+      label: "ZMR Purchase",
+      message: `Buy ${zmrAmount} ZMR`,
+      memo: "zmr-presale"
+    });
+    return `solana:${RECIPIENT}?${p.toString()}`;
+  }
 
-  async function fetchRate() {
-    try {
-      const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', {cache:'no-store'});
-      const data = await res.json();
-      const v = Number(data?.solana?.usd);
-      if (!Number.isFinite(v)) throw 0;
-      solUsd = v;
-      if ($rate) $rate.value = v;
-      if ($rateNote) $rateNote.textContent = ` ( $${v.toFixed(2)} per 1 SOL )`;
-    } catch {
-      if ($rateNote) $rateNote.textContent = " (enter manually)";
-    }
-    recalc();
-  }
+  async function fetchRate() {
+    try {
+      const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', {cache:'no-store'});
+      const data = await res.json();
+      const v = Number(data?.solana?.usd);
+      if (!Number.isFinite(v)) throw 0;
+      solUsd = v;
+      if ($rate) $rate.value = v;
+      if ($rateNote) $rateNote.textContent = ` ( $${v.toFixed(2)} per 1 SOL )`;
+    } catch {
+      if ($rateNote) $rateNote.textContent = " (enter manually)";
+    }
+    recalc();
+  }
 
-  function recalc() {
-    if (!$zmr || !$usd || !$sol || !$pay) return;
+  function recalc() {
+    if (!$zmr || !$usd || !$sol || !$pay) return;
 
-    const zmr = Number($zmr.value);
-    const manual = Number($rate?.value);
-    if (manual > 0) solUsd = manual;
+    const zmr = Number($zmr.value);
+    const manual = Number($rate?.value);
+    if (manual > 0) solUsd = manual;
 
-    if (!Number.isFinite(zmr) || zmr <= 0) {
-      $usd.textContent = "0.00";
-      $sol.textContent = "0";
-      $pay.setAttribute('disabled', 'true');
-      $pay.removeAttribute('href');
-      payUrl = "";
-      return;
-    }
+    if (!Number.isFinite(zmr) || zmr <= 0) {
+      $usd.textContent = "0.00";
+      $sol.textContent = "0";
+      $pay.setAttribute('disabled', 'true');
+      $pay.removeAttribute('href');
+      payUrl = "";
+      return;
+    }
 
-    const usd = zmr * PRICE_PER_ZMR_USD;
-    $usd.textContent = usd.toFixed(2);
+    const usd = zmr * PRICE_PER_ZMR_USD;
+    $usd.textContent = usd.toFixed(2);
 
-    if (solUsd && solUsd > 0) {
-      const sol = usd / solUsd;
-      $sol.textContent = fmt(sol, 6);
-      payUrl = buildSolPayUrl(sol, zmr);
-      $pay.removeAttribute('disabled');
-      $pay.setAttribute('href', payUrl);
-    } else {
-      $sol.textContent = "—";
-      $pay.setAttribute('disabled', 'true');
-      $pay.removeAttribute('href');
-      payUrl = "";
-    }
-  }
+    if (solUsd && solUsd > 0) {
+      const sol = usd / solUsd;
+      $sol.textContent = fmt(sol, 6);
+      payUrl = buildSolPayUrl(sol, zmr);
+      $pay.removeAttribute('disabled');
+      $pay.setAttribute('href', payUrl);
+    } else {
+      $sol.textContent = "—";
+      $pay.setAttribute('disabled', 'true');
+      $pay.removeAttribute('href');
+      payUrl = "";
+    }
+  }
 
-  $zmr?.addEventListener('input', recalc);
-  $rate?.addEventListener('input', recalc);
+  $zmr?.addEventListener('input', recalc);
+  $rate?.addEventListener('input', recalc);
 
-  $copyLink?.addEventListener('click', async () => {
-    if (!payUrl) return;
-    try { await navigator.clipboard.writeText(payUrl); } catch {}
-  });
-  $copyAddr?.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(RECIPIENT); } catch {}
-  });
+  $copyLink?.addEventListener('click', async () => {
+    if (!payUrl) return;
+    try { await navigator.clipboard.writeText(payUrl); } catch {}
+  });
+  $copyAddr?.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(RECIPIENT); } catch {}
+  });
 
-  fetchRate();
+  fetchRate();
 </script>
 </body>
 
