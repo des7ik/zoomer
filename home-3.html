@@ -16,6 +16,29 @@
     <link rel="stylesheet" href="assets/css/ff-1.css">
     <link rel="stylesheet" href="assets/css/ff-2.css">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+  /* Фиолетовый фон на всю страницу */
+  body { background-color: #8000ff !important; }
+
+  /* Калькулятор всегда виден на всех экранах */
+  #zmr-calculator { display:block !important; }
+
+  /* Немного визуальной адаптации под твой стиль */
+  .zmr-card{
+    max-width: 420px;
+    margin: 16px auto 0;
+    padding: 20px;
+    border: 1px solid #111;
+    border-radius: 14px;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 6px #111;
+  }
+  .zmr-card input{ width:100%; padding:10px; border:2px solid #111; border-radius:10px; }
+  .zmr-btn{ display:block; text-align:center; padding:12px; background:#ff3d6a; color:#fff; text-decoration:none; border-radius:12px; font-weight:800; }
+  .zmr-btn[disabled]{ opacity:.5; pointer-events:none; }
+  .zmr-subbtn{ width:100%; padding:10px; border-radius:10px; border:2px solid #111; background:#fff; }
+</style>
 </head>
 
 <body class="bg-success-emphasis overflow-x-hidden">
