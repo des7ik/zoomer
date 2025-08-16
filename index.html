@@ -396,44 +396,44 @@
                                 </div>
                                 <p class="text-light fs-18 text-stroke text-shadow mb-6"> In the Meme vibrant and ever-evolving world </p>
                                 <div class="border border-1x shadow-sharp rounded-5 bg-light p-6">
-                                    <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> PAY IN </span>
-                                    <div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
-                                        <input type="text" class="form-control" value="1">
-                                        <select class="form-select">
-                                            <option value="1">USD</option>
-                                            <option value="2">BDT</option>
-                                            <option value="3">INR</option>
-                                            <option value="4">DNR</option>
-                                            <option value="5">AED</option>
-                                        </select>
-                                    </div>
-                                    <span class="d-block text-heading fs-14 fw-bold ff-2 text-start mt-8"> RECEIVED IN CRYPTO </span>
-                                    <div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
-                                        <input type="text" class="form-control" value="0.00043487">
-                                        <select class="form-select">
-                                            <option value="1">ETH</option>
-                                            <option value="2">BTC</option>
-                                            <option value="3">BNB</option>
-                                            <option value="4">XRP</option>
-                                            <option value="5">SOL</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="my-6">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <span class="d-block h6 m-0 text-light text-stroke text-shadow"> Token Sale </span>
-                                        <span class="d-block h6 m-0 text-light text-stroke text-shadow"> 80% </span>
-                                    </div>
-                                    <div class="progress mt-3">
-                                        <div class="progress-bar bg-danger" style="width: 80%"></div>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-4 justify-content-center justify-content-md-between flex-wrap">
-                                    <button type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18"> REFERRAL CODE </button>
-                                    <button type="button" class="btn btn-lg btn-secondary rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18 text-light text-stroke"> CONNECT WALLET </button>
-                                </div>
-                            </div>
-                        </div>
+  <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> PAY IN </span>
+  <div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
+    <!-- id="zmr" для количества токенов -->
+    <input id="zmr" type="number" class="form-control" value="1" min="1" step="1">
+    <select class="form-select" disabled>
+      <option selected>USD</option>
+    </select>
+  </div>
+
+  <span class="d-block text-heading fs-14 fw-bold ff-2 text-start mt-8"> RECEIVED IN CRYPTO </span>
+  <div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
+    <!-- id="solOut" для отображения расчёта -->
+    <input id="solOut" type="text" class="form-control" value="0" disabled>
+    <select class="form-select" disabled>
+      <option selected>SOL</option>
+    </select>
+  </div>
+</div>
+
+<div class="my-6">
+  <div class="d-flex align-items-center justify-content-between">
+    <span class="d-block h6 m-0 text-light text-stroke text-shadow"> Token Sale </span>
+    <span class="d-block h6 m-0 text-light text-stroke text-shadow"> 80% </span>
+  </div>
+  <div class="progress mt-3">
+    <div class="progress-bar bg-danger" style="width: 80%"></div>
+  </div>
+</div>
+
+<div class="d-flex align-items-center gap-4 justify-content-center justify-content-md-between flex-wrap">
+  <!-- кнопка оплаты -->
+  <a id="btnPay" href="#" class="btn btn-lg btn-secondary rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18 text-light text-stroke"> PAY WITH SOL </a>
+
+  <!-- копирование -->
+  <button id="btnCopyLink" type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18"> COPY PAYMENT LINK </button>
+  <button id="btnCopyAddr" type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18"> COPY ADDRESS </button>
+</div>                            
+                        
                         <div class="col-lg-6">
                             <div class="row g-4">
                                 <div class="col-md-6">
@@ -987,6 +987,80 @@
     <script src="assets/js/SplitText.min.js"></script>
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></script>
-</body>
+            <script>
+  const PRICE_PER_ZMR_USD = 0.0003; // цена токена
+  const RECIPIENT = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой адрес
+
+  const $zmr = document.getElementById('zmr');
+  const $solOut = document.getElementById('solOut');
+  const $btnPay = document.getElementById('btnPay');
+  const $btnCopyLink = document.getElementById('btnCopyLink');
+  const $btnCopyAddr = document.getElementById('btnCopyAddr');
+
+  let solUsd = null;
+  let payUrl = "";
+
+  function fmt(n, d = 6) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return "0";
+    return x.toFixed(d).replace(/\.?0+$/, "");
+  }
+
+  function buildSolPayUrl(amountSol, zmrAmount) {
+    const p = new URLSearchParams({
+      amount: fmt(amountSol),
+      label: "ZMR Purchase",
+      message: `Buy ${zmrAmount} ZMR`,
+      memo: "zmr-presale"
+    });
+    return `solana:${RECIPIENT}?${p.toString()}`;
+  }
+
+  async function fetchRate() {
+    try {
+      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+      const j = await r.json();
+      solUsd = Number(j?.solana?.usd);
+      recalc();
+    } catch {
+      solUsd = null;
+    }
+  }
+
+  function recalc() {
+    const zmr = Number($zmr.value);
+    if (!Number.isFinite(zmr) || zmr <= 0) {
+      $solOut.value = "0";
+      $btnPay.removeAttribute('href');
+      payUrl = "";
+      return;
+    }
+    const usd = zmr * PRICE_PER_ZMR_USD;
+    if (solUsd && solUsd > 0) {
+      const sol = usd / solUsd;
+      $solOut.value = fmt(sol, 6);
+      payUrl = buildSolPayUrl(sol, zmr);
+      $btnPay.setAttribute('href', payUrl);
+    } else {
+      $solOut.value = "—";
+      $btnPay.removeAttribute('href');
+      payUrl = "";
+    }
+  }
+
+  $zmr.addEventListener('input', recalc);
+
+  $btnCopyLink.addEventListener('click', async () => {
+    if (!payUrl) return;
+    try { await navigator.clipboard.writeText(payUrl); } catch {}
+  });
+
+  $btnCopyAddr.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(RECIPIENT); } catch {}
+  });
+
+  fetchRate();
+</script>
+        </body>
 
 </html>
