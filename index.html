@@ -395,24 +395,28 @@
                                     </div>
                                 </div>
                                 <p class="text-light fs-18 text-stroke text-shadow mb-6"> In the Meme vibrant and ever-evolving world </p>
-                                <div class="border border-1x shadow-sharp rounded-5 bg-light p-6">
-  <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> PAY IN </span>
+                                                            <div class="border border-1x shadow-sharp rounded-5 bg-light p-6">
+
+  <!-- СКОЛЬКО ZMR ХОЧЕМ КУПИТЬ -->
+  <span class="d-block text-heading fs-14 fw-bold ff-2 text-start"> RECEIVED (ZMR) </span>
   <div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
-    <!-- id="zmr" для количества токенов -->
     <input id="zmr" type="number" class="form-control" value="1" min="1" step="1">
     <select class="form-select" disabled>
-      <option selected>USD</option>
+      <option selected>ZMR</option>
     </select>
   </div>
 
-  <span class="d-block text-heading fs-14 fw-bold ff-2 text-start mt-8"> RECEIVED IN CRYPTO </span>
+  <!-- СКОЛЬКО SOL НУЖНО ЗАПЛАТИТЬ -->
+  <span class="d-block text-heading fs-14 fw-bold ff-2 text-start mt-8"> PAY IN (SOL) </span>
   <div class="custom-input-group d-flex align-items-center border-bottom border-2x border-dark py-1">
-    <!-- id="solOut" для отображения расчёта -->
     <input id="solOut" type="text" class="form-control" value="0" disabled>
     <select class="form-select" disabled>
       <option selected>SOL</option>
     </select>
   </div>
+
+  <!-- необязательно: показать стоимость в USD -->
+  <small class="d-block text-muted mt-2">Total: <span id="usdOut">0.00</span> USD <span id="rateNote"></span></small>
 </div>
 
 <div class="my-6">
@@ -426,14 +430,16 @@
 </div>
 
 <div class="d-flex align-items-center gap-4 justify-content-center justify-content-md-between flex-wrap">
-  <!-- кнопка оплаты -->
-  <a id="btnPay" href="#" class="btn btn-lg btn-secondary rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18 text-light text-stroke"> PAY WITH SOL </a>
-
-  <!-- копирование -->
-  <button id="btnCopyLink" type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18"> COPY PAYMENT LINK </button>
-  <button id="btnCopyAddr" type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18"> COPY ADDRESS </button>
-</div>                            
-                        
+  <a id="btnPay" href="#" class="btn btn-lg btn-secondary rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18 text-light text-stroke">
+    PAY SOL • GET ZMR
+  </a>
+  <button id="btnCopyLink" type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18">
+    COPY PAYMENT LINK
+  </button>
+  <button id="btnCopyAddr" type="button" class="btn btn-lg btn-light rounded-pill border border-2x border-dark shadow-sharp ff-1 fs-18">
+    COPY ADDRESS
+  </button>
+</div>                        
                         <div class="col-lg-6">
                             <div class="row g-4">
                                 <div class="col-md-6">
