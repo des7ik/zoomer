@@ -994,22 +994,30 @@
     <script src="assets/js/Flip.min.js"></script>
     <script src="assets/js/app.js"></script>
             <script>
-  const PRICE_PER_ZMR_USD = 0.0003; // цена токена
-  const RECIPIENT = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой адрес
+  /* === CONFIG === */
+  const PRICE_PER_ZMR_USD = 0.0003;  // 1 ZMR = $0.0003
+  const RECIPIENT = "fvYR48xCq2wLjcPGFrwmsNFzpQxJXB4W3dTTjPryoWq"; // твой SOL адрес
 
-  const $zmr = document.getElementById('zmr');
-  const $solOut = document.getElementById('solOut');
-  const $btnPay = document.getElementById('btnPay');
-  const $btnCopyLink = document.getElementById('btnCopyLink');
-  const $btnCopyAddr = document.getElementById('btnCopyAddr');
-               
-  let solUsd = null;
-  let payUrl = "";
+  /* === DOM === */
+  const $zmr         = document.getElementById('zmr');        // сколько ZMR покупает пользователь
+  const $solOut      = document.getElementById('solOut');     // сколько SOL к оплате (output)
+  const $btnPay      = document.getElementById('btnPay');     // кнопка оплаты
+  const $btnCopyLink = document.getElementById('btnCopyLink');// копировать ссылку оплаты
+  const $btnCopyAddr = document.getElementById('btnCopyAddr');// копировать адрес
 
+  // необязательные показательные элементы (если есть в разметке):
+  const $usdOut   = document.getElementById('usdOut');   // показать сумму в USD
+  const $rateNote = document.getElementById('rateNote'); // показать курс SOL→USD
+
+  /* === STATE === */
+  let solUsd = null;   // курс 1 SOL в USD
+  let payUrl = "";     // solana: ссылка
+
+  /* === HELPERS === */
   function fmt(n, d = 6) {
     const x = Number(n);
     if (!Number.isFinite(x)) return "0";
-    return x.toFixed(d).replace(/\.?0+$/, "");
+    return x.toFixed(d).replace(/\.?0+$/,'');
   }
 
   function buildSolPayUrl(amountSol, zmrAmount) {
@@ -1022,50 +1030,76 @@
     return `solana:${RECIPIENT}?${p.toString()}`;
   }
 
+  /* === CORE === */
   async function fetchRate() {
     try {
-      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+      const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd', { cache: 'no-store' });
       const j = await r.json();
-      solUsd = Number(j?.solana?.usd);
-      recalc();
+      const v = Number(j?.solana?.usd);
+      if (!Number.isFinite(v)) throw 0;
+      solUsd = v;
+      if ($rateNote) $rateNote.textContent = `(@ $${solUsd.toFixed(2)} / SOL)`;
     } catch {
       solUsd = null;
+      if ($rateNote) $rateNote.textContent = `(enter rate manually or try later)`;
     }
+    recalc();
   }
 
   function recalc() {
-    const zmr = Number($zmr.value);
+    const zmr = Number($zmr?.value);
     if (!Number.isFinite(zmr) || zmr <= 0) {
-      $solOut.value = "0";
-      $btnPay.removeAttribute('href');
+      if ($solOut) $solOut.value = "0";
+      if ($usdOut) $usdOut.textContent = "0.00";
+      if ($btnPay)  $btnPay.removeAttribute('href');
       payUrl = "";
       return;
     }
+
+    // USD стоимость покупки
     const usd = zmr * PRICE_PER_ZMR_USD;
+    if ($usdOut) $usdOut.textContent = usd.toFixed(2);
+
+    // Сколько SOL оплатить
     if (solUsd && solUsd > 0) {
       const sol = usd / solUsd;
-      $solOut.value = fmt(sol, 6);
+      if ($solOut) $solOut.value = fmt(sol, 6);
       payUrl = buildSolPayUrl(sol, zmr);
-      $btnPay.setAttribute('href', payUrl);
+
+      if ($btnPay) $btnPay.setAttribute('href', payUrl); // <a> откроет кошелёк
     } else {
-      $solOut.value = "—";
-      $btnPay.removeAttribute('href');
+      if ($solOut) $solOut.value = "—";
+      if ($btnPay)  $btnPay.removeAttribute('href');
       payUrl = "";
     }
   }
 
-  $zmr.addEventListener('input', recalc);
+  /* === EVENTS === */
+  $zmr?.addEventListener('input', recalc);
 
-  $btnCopyLink.addEventListener('click', async () => {
+  $btnPay?.addEventListener('click', (e) => {
+    // если это <button>, а не <a>, откроем ссылку вручную
+    if ($btnPay.tagName !== 'A') {
+      e.preventDefault();
+      if (payUrl) location.href = payUrl;
+    } else {
+      // если href ещё не выставлен — блокируем переход
+      if (!$btnPay.hasAttribute('href')) e.preventDefault();
+    }
+  });
+
+  $btnCopyLink?.addEventListener('click', async () => {
     if (!payUrl) return;
     try { await navigator.clipboard.writeText(payUrl); } catch {}
   });
 
-  $btnCopyAddr.addEventListener('click', async () => {
+  $btnCopyAddr?.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(RECIPIENT); } catch {}
   });
 
+  /* === INIT === */
   fetchRate();
+  recalc();
 </script>
         </body>
 
