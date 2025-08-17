@@ -1002,15 +1002,7 @@
   const $btnPay = document.getElementById('btnPay');
   const $btnCopyLink = document.getElementById('btnCopyLink');
   const $btnCopyAddr = document.getElementById('btnCopyAddr');
-                // добавь в начало после других const:
-const $usdOut = document.getElementById('usdOut');
-const $rateNote = document.getElementById('rateNote');
-
-// внутри recalc() после вычисления usd:
-if ($usdOut) $usdOut.textContent = usd.toFixed(2);
-
-// в fetchRate() после получения курса:
-if ($rateNote && Number.isFinite(solUsd)) $rateNote.textContent = `(@ $${solUsd.toFixed(2)} / SOL)`;
+               
   let solUsd = null;
   let payUrl = "";
 
